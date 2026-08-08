@@ -51,9 +51,6 @@ class Settings:
     access_cookie_name: str = "mi_access_token"
     refresh_cookie_name: str = "mi_refresh_token"
 
-    # User id sequence start (example schema used 2003)
-    user_id_start: int = int(os.getenv("USER_ID_START", "2000"))
-
     @property
     def google_configured(self) -> bool:
         return bool(self.google_client_id and self.google_client_secret)

@@ -33,7 +33,6 @@ async def ensure_indexes() -> None:
     """Create indexes used by auth lookups."""
     db = get_db()
     await db.users.create_index("email", unique=True)
-    await db.users.create_index("id", unique=True)
     await db.user_sessions.create_index("refresh_token", unique=True)
     await db.user_sessions.create_index([("user_id", 1), ("revoked", 1)])
     await db.user_sessions.create_index("expires_at")

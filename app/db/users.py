@@ -1,13 +1,13 @@
-"""users collection helpers."""
+"""users collection helpers — documents use MongoDB _id only (no custom id field)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
 
-from pymongo import ReturnDocument
+from bson import ObjectId
+from bson.errors import InvalidId
 
-from app.auth.config import get_settings
 from app.db.mongodb import get_db
 
 
@@ -15,34 +15,32 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def next_user_id() -> int:
-    """Atomic integer id sequence (schema uses numeric id, e.g. 2003)."""
-    settings = get_settings()
-    db = get_db()
-    doc = await db.counters.find_one_and_update(
-        {"_id": "users"},
-        {"$inc": {"seq": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-    )
-    seq = int(doc.get("seq", 1))
-    # First insert after upsert starts at 1 — bump to USER_ID_START
-    if seq < settings.user_id_start:
-        doc = await db.counters.find_one_and_update(
-            {"_id": "users"},
-            {"$set": {"seq": settings.user_id_start}},
-            return_document=ReturnDocument.AFTER,
-        )
-        seq = int(doc["seq"])
-    return seq
+def serialize_user(doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Return a plain dict; expose _id as string for JWT/cookies/templates."""
+    if not doc:
+        return None
+    return {
+        "_id": str(doc["_id"]),
+        "email": doc.get("email", ""),
+        "name": doc.get("name", ""),
+        "google_sub": doc.get("google_sub"),
+        "created_at": doc.get("created_at"),
+        "updated_at": doc.get("updated_at"),
+    }
 
 
 async def find_user_by_email(email: str) -> dict[str, Any] | None:
-    return await get_db().users.find_one({"email": email.lower().strip()})
+    doc = await get_db().users.find_one({"email": email.lower().strip()})
+    return serialize_user(doc)
 
 
-async def find_user_by_id(user_id: int) -> dict[str, Any] | None:
-    return await get_db().users.find_one({"id": int(user_id)})
+async def find_user_by_id(user_id: str | ObjectId) -> dict[str, Any] | None:
+    try:
+        oid = user_id if isinstance(user_id, ObjectId) else ObjectId(str(user_id))
+    except (InvalidId, TypeError, ValueError):
+        return None
+    doc = await get_db().users.find_one({"_id": oid})
+    return serialize_user(doc)
 
 
 async def upsert_google_user(*, email: str, name: str, google_sub: str | None = None) -> dict[str, Any]:
@@ -51,7 +49,7 @@ async def upsert_google_user(*, email: str, name: str, google_sub: str | None = 
 
     Schema:
     {
-      "id": 2003,
+      "_id": ObjectId(...),
       "email": "...",
       "name": "...",
       "created_at": ...,
@@ -61,7 +59,7 @@ async def upsert_google_user(*, email: str, name: str, google_sub: str | None = 
     db = get_db()
     now = _utcnow()
     email_norm = email.lower().strip()
-    existing = await find_user_by_email(email_norm)
+    existing = await db.users.find_one({"email": email_norm})
 
     if existing:
         update: dict[str, Any] = {
@@ -70,12 +68,10 @@ async def upsert_google_user(*, email: str, name: str, google_sub: str | None = 
         }
         if google_sub:
             update["google_sub"] = google_sub
-        await db.users.update_one({"id": existing["id"]}, {"$set": update})
-        return await find_user_by_id(existing["id"])  # type: ignore[return-value]
+        await db.users.update_one({"_id": existing["_id"]}, {"$set": update})
+        return await find_user_by_id(existing["_id"])  # type: ignore[return-value]
 
-    user_id = await next_user_id()
     user = {
-        "id": user_id,
         "email": email_norm,
         "name": name or email_norm,
         "created_at": now,
@@ -83,7 +79,5 @@ async def upsert_google_user(*, email: str, name: str, google_sub: str | None = 
     }
     if google_sub:
         user["google_sub"] = google_sub
-    await db.users.insert_one(user)
-    # Drop Mongo _id from returned view for templates
-    stored = await find_user_by_id(user_id)
-    return stored  # type: ignore[return-value]
+    result = await db.users.insert_one(user)
+    return await find_user_by_id(result.inserted_id)  # type: ignore[return-value]

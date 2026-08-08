@@ -26,7 +26,7 @@ cp .env.example .env
 **users**
 ```json
 {
-  "id": 2003,
+  "_id": { "$oid": "66a1b2c3d4e5f67890123456" },
   "email": "user@example.com",
   "name": "User Name",
   "created_at": { "$date": "2026-07-28T11:30:55.233Z" },
@@ -37,7 +37,7 @@ cp .env.example .env
 **user_sessions**
 ```json
 {
-  "user_id": 2003,
+  "user_id": { "$oid": "66a1b2c3d4e5f67890123456" },
   "refresh_token": "67a41ac058dc8353ebad7c5f0ffb6ac2b49b9a3cb346aadc29170f8e989f1ab3",
   "expires_at": { "$date": "2026-08-27T11:30:55.239Z" },
   "created_at": { "$date": "2026-07-28T11:30:55.233Z" },

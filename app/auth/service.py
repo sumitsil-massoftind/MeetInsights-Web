@@ -108,14 +108,14 @@ async def login_with_google_profile(profile: dict[str, Any], response: Response)
 
     # Opaque session refresh token stored in MongoDB (user_sessions schema)
     session_refresh = generate_session_refresh_token()
-    await session_repo.create_session(user_id=user["id"], refresh_token=session_refresh)
+    await session_repo.create_session(user_id=user["_id"], refresh_token=session_refresh)
 
     # Encrypted JWT pair (src jwt_helper pattern) used as browser access credential
     jwt_helper = JWTHelper()
     tokens = jwt_helper.create_token(
         {
             "param": {
-                "user_id": user["id"],
+                "user_id": user["_id"],
                 "email": user["email"],
                 "name": user["name"],
             }
@@ -185,7 +185,7 @@ async def resolve_user_from_request(request: Request) -> dict[str, Any] | None:
             param = payload.get("param") or payload
             user_id = param.get("user_id")
             if user_id is not None:
-                user = await user_repo.find_user_by_id(int(user_id))
+                user = await user_repo.find_user_by_id(str(user_id))
                 if user:
                     return user
         except Exception:
@@ -198,7 +198,7 @@ async def resolve_user_from_request(request: Request) -> dict[str, Any] | None:
     if not session:
         return None
 
-    user = await user_repo.find_user_by_id(int(session["user_id"]))
+    user = await user_repo.find_user_by_id(session["user_id"])
     if not user:
         return None
 
@@ -213,7 +213,7 @@ async def reissue_access_cookie(user: dict[str, Any], response: Response) -> Non
     tokens = jwt_helper.create_token(
         {
             "param": {
-                "user_id": user["id"],
+                "user_id": user["_id"],
                 "email": user["email"],
                 "name": user["name"],
             }
