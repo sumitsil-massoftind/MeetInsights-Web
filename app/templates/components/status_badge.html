@@ -1,0 +1,6 @@
+{% set status = status or "Completed" %}
+{% set status_class = status|lower %}
+<span class="badge-status {{ status_class }}">
+  <span class="dot"></span>
+  {{ status }}
+</span>

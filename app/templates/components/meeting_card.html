@@ -1,0 +1,32 @@
+<div class="mi-card meeting-card h-100">
+  <div class="mi-card-body">
+    <div class="d-flex align-items-start gap-3">
+      {% if selectable %}
+      <div class="pt-1">
+        <input
+          type="checkbox"
+          class="form-check-input meeting-card-check meeting-select"
+          value="{{ meeting.id }}"
+          id="meeting-{{ meeting.id }}"
+          aria-label="Select {{ meeting.name }}"
+        >
+      </div>
+      {% endif %}
+      <div class="flex-grow-1 min-w-0">
+        <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+          <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
+            {{ meeting.name }}
+          </a>
+          {% with status=meeting.status %}
+            {% include "components/status_badge.html" %}
+          {% endwith %}
+        </div>
+        <div class="text-muted-mi small d-flex flex-wrap gap-3">
+          <span><i class="bi bi-folder2 me-1"></i>{{ meeting.project_name or "Unassigned" }}</span>
+          <span><i class="bi bi-calendar3 me-1"></i>{{ meeting.date_dt.strftime("%b %d, %Y") }}</span>
+          <span><i class="bi bi-clock me-1"></i>{{ meeting.duration_label }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

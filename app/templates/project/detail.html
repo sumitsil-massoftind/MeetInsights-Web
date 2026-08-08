@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="project-detail">
+  <div class="page-header meeting-detail-header">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ project.name }}</li>
+      </ol>
+    </nav>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+      <div class="min-w-0">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <span class="project-title-dot" style="--project-color: {{ project.color or '#2563EB' }};"></span>
+          <h1 class="page-title mb-0">{{ project.name }}</h1>
+        </div>
+        <p class="page-subtitle mb-2">{{ project.description }}</p>
+        <div class="meeting-meta">
+          <span class="meeting-meta-item">
+            <i class="bi bi-person"></i>
+            {{ project.owner }}
+          </span>
+          <span class="meeting-meta-item">
+            <i class="bi bi-camera-video"></i>
+            {{ meetings|length }} meeting{{ "s" if meetings|length != 1 else "" }}
+          </span>
+          <span class="meeting-meta-item">
+            <i class="bi bi-calendar3"></i>
+            Updated {{ project.last_updated_dt.strftime("%b %d, %Y") }}
+          </span>
+        </div>
+      </div>
+      <a href="/projects" class="btn btn-sm btn-light border">
+        <i class="bi bi-arrow-left me-1"></i> All projects
+      </a>
+    </div>
+  </div>
+
+  <div class="meeting-layout project-layout">
+    <div class="meeting-main">
+      <section class="mi-card">
+        <div class="mi-card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="section-title mb-0">
+              <i class="bi bi-camera-video text-muted-mi"></i> Meetings in project
+            </h2>
+            {% if meetings %}
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="select-all-meetings">
+              <label class="form-check-label small text-muted-mi" for="select-all-meetings">Select all</label>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="table-wrap table-wrap-flush">
+            <table class="table mi-table">
+              <thead>
+                <tr>
+                  <th class="col-check"></th>
+                  <th>Meeting Name</th>
+                  <th>Date</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for meeting in meetings %}
+                <tr>
+                  <td class="col-check">
+                    <input
+                      type="checkbox"
+                      class="form-check-input meeting-card-check meeting-select"
+                      value="{{ meeting.id }}"
+                      id="meeting-{{ meeting.id }}"
+                      aria-label="Select {{ meeting.name }}"
+                    >
+                  </td>
+                  <td>
+                    <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
+                      {{ meeting.name }}
+                    </a>
+                  </td>
+                  <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
+                  <td class="text-muted-mi">{{ meeting.duration_label }}</td>
+                  <td>
+                    {% with status=meeting.status %}
+                      {% include "components/status_badge.html" %}
+                    {% endwith %}
+                  </td>
+                  <td class="text-end">
+                    <a href="/meetings/{{ meeting.id }}" class="btn btn-sm btn-soft" title="Open">
+                      <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted-mi py-5">No meetings in this project.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if meetings %}
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+            <span id="selection-hint" class="small text-muted-mi">Select one or more meetings to chat about</span>
+            <span class="small text-muted-mi">{{ meetings|length }} meeting{{ "s" if meetings|length != 1 else "" }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="chat-panel" aria-label="Project chat">
+      <div class="chat-panel-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="chat-panel-icon"><i class="bi bi-stars"></i></span>
+          <div>
+            <div class="fw-semibold">Ask about this project</div>
+            <div class="small text-muted-mi">Answers clear when you leave this page</div>
+          </div>
+        </div>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-empty">
+          <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
+          <p class="chat-empty-title">Chat across meetings</p>
+          <p class="small text-muted-mi mb-3">Select meetings on the left, then ask a question.</p>
+          <div class="chat-suggestions">
+            <button type="button" class="chat-suggestion" data-chat-prompt="Summarize the selected meetings">
+              Summarize selected meetings
+            </button>
+            <button type="button" class="chat-suggestion" data-chat-prompt="What decisions were made across these meetings?">
+              What decisions were made?
+            </button>
+            <button type="button" class="chat-suggestion" data-chat-prompt="What risks or blockers came up?">
+              What risks came up?
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <form
+          class="chat-form"
+          hx-post="/projects/{{ project.id }}/chat"
+          hx-target="#chat-messages"
+          hx-swap="beforeend"
+        >
+          <input type="hidden" name="meeting_ids" id="selected-meeting-ids" value="">
+          <div class="chat-input-row">
+            <input
+              type="text"
+              name="message"
+              id="project-chat-input"
+              class="form-control"
+              placeholder="Ask about selected meetings…"
+              autocomplete="off"
+              required
+            >
+            <button type="submit" class="btn btn-primary chat-send-btn" id="project-chat-send" title="Send" disabled>
+              <i class="bi bi-send"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

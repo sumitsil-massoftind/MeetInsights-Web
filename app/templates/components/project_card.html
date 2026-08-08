@@ -1,0 +1,25 @@
+<a href="/projects/{{ project.id }}" class="text-decoration-none text-dark d-block h-100">
+  <div class="mi-card project-card">
+    <div class="mi-card-body">
+      <div class="d-flex gap-3">
+        <div class="project-color-bar" style="background: {{ project.color or '#2563EB' }};"></div>
+        <div class="flex-grow-1 min-w-0">
+          <h3 class="h6 fw-semibold mb-1 text-truncate">{{ project.name }}</h3>
+          <p class="text-muted-mi small mb-3 text-truncate-2">
+            {{ project.description[:100] }}{% if project.description|length > 100 %}…{% endif %}
+          </p>
+          <div class="d-flex justify-content-between align-items-center small text-muted-mi">
+            <span>
+              <i class="bi bi-camera-video me-1"></i>
+              {{ project.meeting_count }} meeting{{ "s" if project.meeting_count != 1 else "" }}
+            </span>
+            <span>
+              <i class="bi bi-clock-history me-1"></i>
+              {{ project.last_updated_dt.strftime("%b %d, %Y") }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</a>

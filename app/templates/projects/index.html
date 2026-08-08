@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <h1 class="page-title">Projects</h1>
+    <p class="page-subtitle">Group meetings by initiative and open project intelligence.</p>
+  </div>
+  <button
+    type="button"
+    class="btn btn-primary btn-sm"
+    data-bs-toggle="modal"
+    data-bs-target="#createProjectModal"
+  >
+    <i class="bi bi-plus-lg me-1"></i> New project
+  </button>
+</div>
+
+<div class="table-wrap">
+  <table class="table mi-table">
+    <thead>
+      <tr>
+        <th>Project Name</th>
+        <th>Owner</th>
+        <th>Meetings</th>
+        <th>Last Updated</th>
+        <th class="text-end">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for project in projects %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2 min-w-0">
+            <span class="project-title-dot flex-shrink-0" style="--project-color: {{ project.color or '#2563EB' }};"></span>
+            <div class="min-w-0">
+              <a href="/projects/{{ project.id }}" class="fw-semibold text-decoration-none text-dark d-block text-truncate">
+                {{ project.name }}
+              </a>
+              <span class="text-muted-mi small text-truncate d-block">
+                {{ project.description[:80] }}{% if project.description|length > 80 %}…{% endif %}
+              </span>
+            </div>
+          </div>
+        </td>
+        <td class="text-muted-mi">{{ project.owner }}</td>
+        <td class="text-muted-mi">{{ project.meeting_count }}</td>
+        <td class="text-muted-mi">{{ project.last_updated_dt.strftime("%b %d, %Y") }}</td>
+        <td class="text-end">
+          <a href="/projects/{{ project.id }}" class="btn btn-sm btn-soft" title="Open">
+            <i class="bi bi-arrow-up-right"></i>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="text-center text-muted-mi py-5">No projects found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="small text-muted-mi mt-3 mb-0">{{ projects|length }} project{{ "s" if projects|length != 1 else "" }}</p>
+
+<!-- Create Project Modal (mock only) -->
+<div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content mi-modal">
+      <form
+        hx-post="/projects/create"
+        hx-target="#toast-host"
+        hx-swap="innerHTML"
+      >
+        <div class="modal-header border-0 pb-0">
+          <h2 class="modal-title h5 fw-semibold" id="createProjectLabel">Create project</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted-mi mb-3">UI mock only — nothing is persisted.</p>
+          <div class="mb-3">
+            <label for="project-name" class="form-label small fw-semibold">Project name</label>
+            <input type="text" class="form-control" id="project-name" name="name" placeholder="e.g. Product Launch Q4" required>
+          </div>
+          <div class="mb-0">
+            <label for="project-desc" class="form-label small fw-semibold">Description</label>
+            <textarea class="form-control" id="project-desc" name="description" rows="3" placeholder="What is this project about?"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Create project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

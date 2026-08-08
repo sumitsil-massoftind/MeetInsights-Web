@@ -1,0 +1,69 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+ 
+# Virtual environment
+.venv/
+env/
+venv/
+ 
+# Environment variables
+.env
+ 
+# VSCode settings
+.vscode/
+ 
+# macOS system files
+.DS_Store
+ 
+# Log files
+*.log
+ 
+# Pytest cache
+.pytest_cache/
+.cache/
+ 
+# MyPy & Pylint
+.mypy_cache/
+.pylint.d/
+ 
+# Coverage reports
+htmlcov/
+coverage.xml
+*.cover
+ 
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+ 
+# Database files (if any local)
+*.db
+*.sqlite3
+ 
+# FastAPI auto-generated docs (if exported)
+openapi.json
+docs.json
+ 
+# image files
+*.png
+*.jpg
+*.jpeg
+*.json
+.cursor
+
+docs/
+.python-version
+
+# Exception: keep this specific JSON file tracked
+# !data_json/input/AllServiceUsers.json
+!data_json/input/MasterADLInfo.json
+
+# Module classifier FAISS indexes (built offline)
+app/scripts/module_classifier/indexes/
+
+# Module classifier dev / QA / backend-contract files (not needed at runtime)
+app/scripts/module_classifier/extras/
+output/
+videos/

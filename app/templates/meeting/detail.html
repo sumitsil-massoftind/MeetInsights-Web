@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="meeting-detail">
+  <div class="page-header meeting-detail-header">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/meetings">Meetings</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ meeting.name }}</li>
+      </ol>
+    </nav>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+      <div class="min-w-0">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <h1 class="page-title mb-0">{{ meeting.name }}</h1>
+          {% with status=meeting.status %}
+            {% include "components/status_badge.html" %}
+          {% endwith %}
+        </div>
+        <div class="meeting-meta">
+          <span class="meeting-meta-item">
+            <i class="bi bi-folder2"></i>
+            {% if meeting.project_id %}
+            <a href="/projects/{{ meeting.project_id }}">{{ meeting.project_name }}</a>
+            {% else %}
+            Unassigned
+            {% endif %}
+          </span>
+          <span class="meeting-meta-item">
+            <i class="bi bi-calendar3"></i>
+            {{ meeting.date_dt.strftime("%b %d, %Y · %I:%M %p") }}
+          </span>
+          <span class="meeting-meta-item">
+            <i class="bi bi-clock"></i>
+            {{ meeting.duration_label }}
+          </span>
+        </div>
+      </div>
+      <a href="/meetings" class="btn btn-sm btn-light border">
+        <i class="bi bi-arrow-left me-1"></i> All meetings
+      </a>
+    </div>
+  </div>
+
+  <div class="meeting-layout">
+    <div class="meeting-main">
+      <section class="mi-card meeting-summary-card">
+        <div class="mi-card-body">
+          <h2 class="section-title">
+            <i class="bi bi-stars text-muted-mi"></i> AI Summary
+          </h2>
+          <p class="meeting-summary-text mb-0">{{ meeting.summary }}</p>
+        </div>
+      </section>
+
+      <section class="mi-card meeting-transcript-card">
+        <div class="mi-card-body d-flex flex-column h-100">
+          <h2 class="section-title">
+            <i class="bi bi-chat-left-text text-muted-mi"></i> Transcript Preview
+          </h2>
+          <div class="transcript-block flex-grow-1">{{ meeting.transcript_preview }}</div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="chat-panel" aria-label="Meeting chat">
+      <div class="chat-panel-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="chat-panel-icon"><i class="bi bi-stars"></i></span>
+          <div>
+            <div class="fw-semibold">Ask about this meeting</div>
+            <div class="small text-muted-mi">Answers clear when you leave this page</div>
+          </div>
+        </div>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-empty">
+          <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
+          <p class="chat-empty-title">Chat with this meeting</p>
+          <p class="small text-muted-mi mb-3">Ask about the summary or transcript.</p>
+          <div class="chat-suggestions">
+            <button type="button" class="chat-suggestion" data-chat-prompt="Summarize this meeting in 3 bullet points">
+              Summarize in 3 bullets
+            </button>
+            <button type="button" class="chat-suggestion" data-chat-prompt="What decisions were made?">
+              What decisions were made?
+            </button>
+            <button type="button" class="chat-suggestion" data-chat-prompt="What risks or blockers were discussed?">
+              What risks came up?
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <form
+          class="chat-form"
+          hx-post="/meetings/{{ meeting.id }}/chat"
+          hx-target="#chat-messages"
+          hx-swap="beforeend"
+        >
+          <div class="chat-input-row">
+            <input
+              type="text"
+              name="message"
+              class="form-control"
+              placeholder="Ask anything about this meeting…"
+              autocomplete="off"
+              required
+            >
+            <button type="submit" class="btn btn-primary chat-send-btn" title="Send">
+              <i class="bi bi-send"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

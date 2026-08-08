@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of meetings and projects.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/meetings" class="btn btn-soft btn-sm">
+      <i class="bi bi-camera-video me-1"></i> View meetings
+    </a>
+    <a href="/projects" class="btn btn-primary btn-sm">
+      <i class="bi bi-folder-plus me-1"></i> Projects
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    {% with value=stats.total_meetings, label="Total Meetings", icon="bi-camera-video" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.total_projects, label="Projects", icon="bi-folder2" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.processing, label="Processing", icon="bi-hourglass-split" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.completed, label="Completed", icon="bi-check-circle" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+</div>
+
+<div class="mi-card mb-4">
+  <div class="mi-card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="section-title mb-0"><i class="bi bi-camera-video text-muted-mi"></i> Recent Meetings</h2>
+      <a href="/meetings" class="small">View all</a>
+    </div>
+    <div class="d-flex flex-column gap-2">
+      {% for meeting in recent_meetings %}
+        {% with selectable=false %}
+          {% include "components/meeting_card.html" %}
+        {% endwith %}
+      {% else %}
+        <p class="text-muted-mi small mb-0">No meetings yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mi-card">
+  <div class="mi-card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="section-title mb-0"><i class="bi bi-folder2 text-muted-mi"></i> Recent Projects</h2>
+      <a href="/projects" class="small">View all</a>
+    </div>
+    <div class="row g-3">
+      {% for project in recent_projects %}
+      <div class="col-md-6 col-xl-3">
+        {% include "components/project_card.html" %}
+      </div>
+      {% else %}
+      <div class="col-12">
+        <p class="text-muted-mi small mb-0">No projects yet.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
