@@ -11,6 +11,34 @@ from app.mock_data_service import get_meeting, get_meetings, mock_chat_reply
 router = APIRouter(tags=["meetings"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
+_PLATFORM_LABELS = {
+    "google_meet": "Google Meet",
+    "zoom": "Zoom",
+    "teams": "Microsoft Teams",
+}
+
+
+@router.post("/meetings/join", response_class=HTMLResponse)
+async def join_meeting(
+    request: Request,
+    platform: str = Form("google_meet"),
+    meeting_url: str = Form(...),
+    title: str = Form(""),
+):
+    """UI mock — accepts platform + meeting link; does not start a real session."""
+    label = _PLATFORM_LABELS.get(platform, "Meeting")
+    name = (title or "").strip() or "Untitled meeting"
+    url = (meeting_url or "").strip()
+    short_url = url if len(url) <= 48 else url[:45] + "…"
+    return templates.TemplateResponse(
+        "components/toast.html",
+        {
+            "request": request,
+            "message": f'Queued “{name}” on {label} ({short_url}). UI mock only.',
+            "toast_type": "info",
+        },
+    )
+
 
 @router.get("/meetings", response_class=HTMLResponse)
 async def meetings_list(request: Request, page: int = 1, status: str = ""):

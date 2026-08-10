@@ -1,45 +1,93 @@
 {% extends "base.html" %}
 {% set bare_layout = true %}
 
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block bare %}
-<div class="auth-page">
-  <div class="auth-card">
-    <div class="text-center mb-4">
-      <span class="brand-mark brand-mark-lg mx-auto d-inline-flex mb-3">MI</span>
-      <h1 class="h4 fw-bold mb-1">Meet Insights</h1>
-      <p class="text-muted-mi small mb-0">AI Meeting Intelligence Platform</p>
-    </div>
+<div class="auth-shell">
+  <div class="auth-ambient" aria-hidden="true">
+    <span class="auth-blob auth-blob-a"></span>
+    <span class="auth-blob auth-blob-b"></span>
+    <span class="auth-grid"></span>
+  </div>
 
-    <div class="mb-4 text-center">
-      <h2 class="h5 fw-semibold mb-1">Sign in</h2>
-      <p class="text-muted-mi small mb-0">Continue with your Google account to access Meet Insights.</p>
-    </div>
+  <div class="auth-layout">
+    <section class="auth-brand-panel">
+      <div class="auth-brand-inner">
+        <div class="auth-logo-row">
+          <span class="auth-logo-mark">MI</span>
+          <span class="auth-logo-name">Meet Insights</span>
+        </div>
+        <h1 class="auth-headline">
+          Meeting intelligence,<br>
+          without the noise.
+        </h1>
+        <p class="auth-lede">
+          Capture, summarize, and ask anything about your meetings — in one calm workspace.
+        </p>
+        <ul class="auth-proof" aria-label="Product highlights">
+          <li>
+            <i class="bi bi-camera-video"></i>
+            <span>Transcripts &amp; AI summaries</span>
+          </li>
+          <li>
+            <i class="bi bi-folder2"></i>
+            <span>Projects that stay organized</span>
+          </li>
+          <li>
+            <i class="bi bi-chat-dots"></i>
+            <span>Chat over any meeting context</span>
+          </li>
+        </ul>
+      </div>
+    </section>
 
-    {% if error %}
-    <div class="alert alert-danger py-2 small" role="alert">
-      <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
-    </div>
-    {% endif %}
+    <section class="auth-form-panel">
+      <div class="auth-form-card">
+        <div class="auth-form-brand d-lg-none mb-4">
+          <span class="auth-logo-mark auth-logo-mark-sm">MI</span>
+          <span class="auth-logo-name">Meet Insights</span>
+        </div>
 
-    {% if google_configured %}
-    <a href="/auth/google" class="btn btn-google w-100 py-2 d-inline-flex align-items-center justify-content-center gap-2 mb-3">
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      <span>Continue with Google</span>
-    </a>
-    <p class="text-center small text-muted-mi mb-0">
-      By continuing, you agree to sign in with your Google account.
-    </p>
-    {% else %}
-    <div class="alert alert-warning small mb-0" role="alert">
-      <div class="fw-semibold mb-1">Sign-in is temporarily unavailable</div>
-      <div>Please try again later. If the problem continues, contact your administrator.</div>
-    </div>
-    {% endif %}
+        <p class="auth-form-kicker">Welcome back</p>
+        <h2 class="auth-form-title">Sign in to continue</h2>
+        <p class="auth-form-sub">Use your Google account to access your workspace.</p>
+
+        {% if error %}
+        <div class="auth-alert" role="alert">
+          <i class="bi bi-exclamation-circle"></i>
+          <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if google_configured %}
+        <a href="/auth/google" class="btn-google-auth">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </a>
+        <p class="auth-form-note">
+          Secure single sign-on. We only use your name and email to create your account.
+        </p>
+        {% else %}
+        <div class="auth-alert auth-alert-warn" role="alert">
+          <i class="bi bi-hourglass-split"></i>
+          <div>
+            <strong>Sign-in is temporarily unavailable</strong>
+            <span>Please try again later. If it continues, contact your administrator.</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <p class="auth-footer-copy">© Meet Insights</p>
+    </section>
   </div>
 </div>
 {% endblock %}

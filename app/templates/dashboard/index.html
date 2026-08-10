@@ -16,6 +16,10 @@
   </div>
 </div>
 
+<div class="mb-4">
+  {% include "components/join_meeting_form.html" %}
+</div>
+
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3">
     {% with value=stats.total_meetings, label="Total Meetings", icon="bi-camera-video" %}

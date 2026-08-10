@@ -14,7 +14,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // OTP focus hopping
+  // Reset join-meeting form after successful mock submit
+  document.body.addEventListener("htmx:afterRequest", (event) => {
+    const form = event.target;
+    if (
+      form &&
+      form.matches &&
+      form.matches(".join-meeting-form") &&
+      event.detail &&
+      event.detail.successful
+    ) {
+      form.reset();
+      syncJoinMeetingPlaceholder(form);
+    }
+  });
+
+  const platformPlaceholders = {
+    google_meet: "https://meet.google.com/abc-defg-hij",
+    zoom: "https://zoom.us/j/1234567890",
+    teams: "https://teams.microsoft.com/l/meetup-join/…",
+  };
+
+  function syncJoinMeetingPlaceholder(form) {
+    if (!form) return;
+    const selected = form.querySelector('input[name="platform"]:checked');
+    const urlInput = form.querySelector('input[name="meeting_url"]');
+    if (!selected || !urlInput) return;
+    urlInput.placeholder =
+      platformPlaceholders[selected.value] || platformPlaceholders.google_meet;
+  }
+
+  document.querySelectorAll(".join-meeting-form").forEach((form) => {
+    form.querySelectorAll('input[name="platform"]').forEach((radio) => {
+      radio.addEventListener("change", () => syncJoinMeetingPlaceholder(form));
+    });
+    syncJoinMeetingPlaceholder(form);
+  });
+
+  // OTP focus hopping (legacy)
   const otpInputs = document.querySelectorAll(".otp-inputs input");
   otpInputs.forEach((input, index) => {
     input.addEventListener("input", () => {
