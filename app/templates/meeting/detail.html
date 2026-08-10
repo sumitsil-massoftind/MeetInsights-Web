@@ -94,9 +94,9 @@
       <div class="chat-input-area">
         <form
           class="chat-form"
-          hx-post="/meetings/{{ meeting.id }}/chat"
-          hx-target="#chat-messages"
-          hx-swap="beforeend"
+          data-api-url="/api/meetings/{{ meeting.id }}/chat"
+          data-chat-kind="meeting"
+          novalidate
         >
           <div class="chat-input-row">
             <input

@@ -145,9 +145,9 @@
       <div class="chat-input-area">
         <form
           class="chat-form"
-          hx-post="/projects/{{ project.id }}/chat"
-          hx-target="#chat-messages"
-          hx-swap="beforeend"
+          data-api-url="/api/projects/{{ project.id }}/chat"
+          data-chat-kind="project"
+          novalidate
         >
           <input type="hidden" name="meeting_ids" id="selected-meeting-ids" value="">
           <div class="chat-input-row">

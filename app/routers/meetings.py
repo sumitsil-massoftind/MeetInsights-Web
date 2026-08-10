@@ -1,43 +1,15 @@
-"""Meetings list and meeting detail pages."""
+"""Meetings list and meeting detail pages (HTML only — mutations via /api/* JSON)."""
 
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.mock_data_service import get_meeting, get_meetings, mock_chat_reply
+from app.mock_data_service import get_meeting, get_meetings
 
 router = APIRouter(tags=["meetings"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
-
-_PLATFORM_LABELS = {
-    "google_meet": "Google Meet",
-    "zoom": "Zoom",
-    "teams": "Microsoft Teams",
-}
-
-
-@router.post("/meetings/join", response_class=HTMLResponse)
-async def join_meeting(
-    request: Request,
-    platform: str = Form("google_meet"),
-    meeting_url: str = Form(...),
-    title: str = Form(""),
-):
-    """UI mock — accepts platform + meeting link; does not start a real session."""
-    label = _PLATFORM_LABELS.get(platform, "Meeting")
-    name = (title or "").strip() or "Untitled meeting"
-    url = (meeting_url or "").strip()
-    short_url = url if len(url) <= 48 else url[:45] + "…"
-    return templates.TemplateResponse(
-        "components/toast.html",
-        {
-            "request": request,
-            "message": f'Queued “{name}” on {label} ({short_url}). UI mock only.',
-            "toast_type": "info",
-        },
-    )
 
 
 @router.get("/meetings", response_class=HTMLResponse)
@@ -89,25 +61,5 @@ async def meeting_detail(request: Request, meeting_id: str):
             "active_nav": "meetings",
             "page_title": meeting["name"],
             "meeting": meeting,
-        },
-    )
-
-
-@router.post("/meetings/{meeting_id}/chat", response_class=HTMLResponse)
-async def meeting_chat(
-    request: Request,
-    meeting_id: str,
-    message: str = Form(...),
-):
-    """Return HTMX partial with user + assistant chat bubbles (mock only)."""
-    meeting = get_meeting(meeting_id)
-    reply = mock_chat_reply(message)
-    return templates.TemplateResponse(
-        "components/chat_exchange.html",
-        {
-            "request": request,
-            "user_message": message,
-            "assistant_message": reply,
-            "meeting_name": meeting["name"] if meeting else "this meeting",
         },
     )

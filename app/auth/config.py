@@ -24,6 +24,10 @@ class Settings:
     mongodb_uri: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     mongodb_db: str = os.getenv("MONGODB_DB", "meetinsights")
 
+    # RabbitMQ
+    rabbitmq_url: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    rabbitmq_meeting_queue: str = os.getenv("RABBITMQ_MEETING_QUEUE", "meetinsights.meetings")
+
     # Google OAuth
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")

@@ -1,4 +1,4 @@
-{# Reusable form: select platform + paste meeting link (UI mock only) #}
+{# Reusable form: select platform + paste meeting link #}
 <section class="mi-card join-meeting-card {% if compact %}join-meeting-card-compact{% endif %}">
   <div class="mi-card-body">
     {% if not compact %}
@@ -16,12 +16,7 @@
     </h2>
     {% endif %}
 
-    <form
-      class="join-meeting-form"
-      hx-post="/meetings/join"
-      hx-target="#toast-host"
-      hx-swap="innerHTML"
-    >
+    <form class="join-meeting-form" data-api-url="/api/meetings" novalidate>
       <div class="mb-3">
         <label class="form-label small fw-semibold mb-2">Platform</label>
         <div class="platform-picker" role="radiogroup" aria-label="Meeting platform">
@@ -87,7 +82,7 @@
           Supports Google Meet, Zoom, and Teams links.
         </p>
         <button type="submit" class="btn btn-primary">
-          <i class="bi bi-broadcast me-1"></i> Start meeting
+          <i class="bi bi-broadcast me-1"></i> Invite bot to join
         </button>
       </div>
     </form>

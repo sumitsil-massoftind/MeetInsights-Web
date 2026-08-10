@@ -1,64 +1,150 @@
-/* Client-side chat helpers (UI only — no persistence) */
+/* Chat UI — JSON APIs only (application/json) */
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function appendChatExchange(container, userMessage, assistantMessage) {
+  if (!container) return;
+  const empty = container.querySelector(".chat-empty");
+  if (empty) empty.remove();
+
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="chat-bubble user">
+      <div class="chat-meta">You</div>
+      <div>${escapeHtml(userMessage)}</div>
+    </div>
+    <div class="chat-bubble assistant">
+      <div class="chat-meta"><i class="bi bi-stars me-1"></i>Assistant</div>
+      <div>${escapeHtml(assistantMessage)}</div>
+    </div>
+  `;
+  while (wrap.firstChild) {
+    container.appendChild(wrap.firstChild);
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  });
+
+  let payload = null;
+  const text = await response.text();
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = null;
+    }
+  }
+
+  const envelope = payload && payload.response ? payload.response : null;
+  const status = envelope && envelope.status ? envelope.status : null;
+  const data = envelope && envelope.data != null ? envelope.data : {};
+  const msg =
+    (status && status.msg) ||
+    (payload && (payload.detail || payload.message)) ||
+    "Something went wrong. Please try again.";
+  const ok =
+    response.ok &&
+    (status ? status.action_status !== false : true);
+
+  if (!ok) {
+    const err = new Error(typeof msg === "string" ? msg : "Request failed.");
+    err.status = response.status;
+    err.data = data;
+    throw err;
+  }
+
+  return { data, msg, status, payload };
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Clear chat empty state when first messages arrive
-  document.body.addEventListener("htmx:afterSwap", (event) => {
-    if (event.target && event.target.id === "chat-messages") {
-      const empty = event.target.querySelector(".chat-empty");
-      if (empty) empty.remove();
-      event.target.scrollTop = event.target.scrollHeight;
-    }
-  });
+  document.querySelectorAll(".chat-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
 
-  // After submit, clear the message input
-  document.body.addEventListener("htmx:afterRequest", (event) => {
-    const form = event.target;
-    if (form && form.matches && form.matches(".chat-form")) {
-      const input = form.querySelector('input[name="message"], textarea[name="message"]');
-      if (input) {
-        input.value = "";
-        input.focus();
-      }
-    }
-  });
-
-  // Guard project chat submits when nothing selected
-  document.body.addEventListener(
-    "submit",
-    (event) => {
-      const form = event.target;
-      if (!form || !form.matches || !form.matches(".chat-form")) return;
       const selectedInput = form.querySelector("#selected-meeting-ids");
       if (selectedInput && !selectedInput.value.trim()) {
-        event.preventDefault();
-        event.stopPropagation();
+        return;
       }
-    },
-    true
-  );
 
-  // Suggested prompts fill chat input and send
+      const url = form.getAttribute("data-api-url");
+      const input = form.querySelector('input[name="message"], textarea[name="message"]');
+      if (!url || !input) return;
+
+      const message = (input.value || "").trim();
+      if (!message) return;
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const body = { message };
+
+      if (form.getAttribute("data-chat-kind") === "project") {
+        body.meeting_ids = selectedInput
+          ? selectedInput.value.split(",").map((s) => s.trim()).filter(Boolean)
+          : [];
+      }
+
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const result = await postJson(url, body);
+        const chat = result.data || {};
+        const panel = form.closest(".chat-panel") || document;
+        const messages = panel.querySelector("#chat-messages") || document.getElementById("chat-messages");
+        appendChatExchange(
+          messages,
+          chat.user_message || message,
+          chat.assistant_message || ""
+        );
+        input.value = "";
+        input.focus();
+      } catch (err) {
+        if (typeof showToast === "function") {
+          showToast(err.message || "Unable to send message.");
+        }
+      } finally {
+        if (submitBtn && form.getAttribute("data-chat-kind") !== "project") {
+          submitBtn.disabled = false;
+        } else if (submitBtn && form.getAttribute("data-chat-kind") === "project") {
+          const hasSelection = selectedInput && selectedInput.value.trim();
+          submitBtn.disabled = !hasSelection;
+        }
+      }
+    });
+  });
+
   document.body.addEventListener("click", (event) => {
     const suggestion = event.target.closest(".chat-suggestion");
     if (!suggestion) return;
     const prompt = suggestion.getAttribute("data-chat-prompt");
     if (!prompt) return;
 
-    // Prefer active panel form (meeting or project)
     const form =
       suggestion.closest(".chat-panel")?.querySelector(".chat-form") ||
       document.querySelector(".chat-panel .chat-form");
     if (!form) return;
 
-    const input = form.querySelector('input[name="message"]');
-    if (!input) return;
-
-    // On project page, require a selection before sending
     const selectedInput = document.getElementById("selected-meeting-ids");
-    if (selectedInput && !selectedInput.value.trim()) {
+    if (form.getAttribute("data-chat-kind") === "project" && selectedInput && !selectedInput.value.trim()) {
       return;
     }
 
+    const input = form.querySelector('input[name="message"]');
+    if (!input) return;
     input.value = prompt;
     if (typeof form.requestSubmit === "function") {
       form.requestSubmit();
@@ -67,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Project multi-meeting selection
   const selectedInput = document.getElementById("selected-meeting-ids");
   const selectionHint = document.getElementById("selection-hint");
   const projectChatSend = document.getElementById("project-chat-send");

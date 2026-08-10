@@ -47,10 +47,97 @@ cp .env.example .env
 
 Access tokens are encrypted JWTs (pattern from `src/helper/jwt_helper.ts`) and stored in the `mi_access_token` httpOnly cookie. The opaque refresh token is stored in MongoDB `user_sessions` and the `mi_refresh_token` cookie.
 
+### Meetings collection
+
+When a user starts a meeting:
+
+```json
+{
+  "_id": { "$oid": "..." },
+  "user_id": { "$oid": "..." },
+  "platform": "google_meet",
+  "meeting_url": "https://meet.google.com/abc-defg-hij",
+  "title": "Weekly sync",
+  "status": "queued",
+  "created_at": { "$date": "..." },
+  "updated_at": { "$date": "..." }
+}
+```
+
+The meeting `_id` is published to RabbitMQ queue `meetinsights.meetings` as:
+
+```json
+{"id": "<meeting_id>"}
+```
+
+### API response format
+
+All `/api/*` responses use this envelope (payload lives under `data`):
+
+```json
+{
+  "response": {
+    "data": {},
+    "status": {
+      "msg": "<Success Message>",
+      "action_status": true
+    }
+  }
+}
+```
+
+Errors use the same shape with `action_status: false` and an error `msg`.
+
+### Start meeting API
+
+`POST /api/meetings` — `Content-Type: application/json` (auth cookie required)
+
+Request:
+
+```json
+{
+  "platform": "google_meet",
+  "meeting_url": "https://meet.google.com/abc-defg-hij",
+  "title": "Weekly sync"
+}
+```
+
+Response example:
+
+```json
+{
+  "response": {
+    "data": {
+      "id": "...",
+      "platform": "google_meet",
+      "platform_label": "Google Meet",
+      "meeting_url": "https://meet.google.com/abc-defg-hij",
+      "title": "Weekly sync",
+      "status": "queued"
+    },
+    "status": {
+      "msg": "Meeting started and queued for processing.",
+      "action_status": true
+    }
+  }
+}
+```
+
+All JSON APIs:
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/api/meetings` | platform, meeting_url, title |
+| POST | `/api/meetings/{id}/chat` | message |
+| POST | `/api/projects` | name, description |
+| POST | `/api/projects/{id}/chat` | message, meeting_ids[] |
+
+No form-data is used (reserved for future image uploads only).
+
 ## Run
 
 ```bash
-# MongoDB must be running
+# MongoDB and RabbitMQ must be running
 uvicorn app.main:app --reload
 ```
 
