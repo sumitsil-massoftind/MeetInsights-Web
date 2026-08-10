@@ -109,21 +109,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (submitBtn) submitBtn.disabled = true;
       try {
-        const result = await postJson(url, {
+        const projectSelect = form.querySelector('select[name="project_id"]');
+        const projectId = projectSelect ? (projectSelect.value || "").trim() : "";
+        const payload = {
           platform,
           meeting_url: meetingUrl.trim(),
           title: title.trim(),
-        });
+        };
+        if (projectId) payload.project_id = projectId;
+
+        const result = await postJson(url, payload);
         const meeting = result.data || {};
-        const label = meeting.platform_label || meeting.platform || "meeting";
-        showToast(
-          result.msg ||
-            `“${meeting.title || "Meeting"}” started on ${label} and queued for processing.`
-        );
+        showToast(result.msg || `Bot invited to join “${meeting.title || "meeting"}”.`);
         form.reset();
         syncJoinMeetingPlaceholder(form);
+        if (window.location.pathname === "/meetings" || window.location.pathname === "/dashboard") {
+          window.setTimeout(() => window.location.reload(), 600);
+        }
       } catch (err) {
-        showToast(err.message || "Unable to start this meeting. Please try again.");
+        showToast(err.message || "Unable to invite the bot. Please try again.");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -150,10 +154,47 @@ document.addEventListener("DOMContentLoaded", () => {
         if (modalEl && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(modalEl).hide();
         }
+        window.setTimeout(() => window.location.reload(), 400);
       } catch (err) {
         showToast(err.message || "Unable to create project. Please try again.");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(".meeting-project-picker").forEach((select) => {
+    select.addEventListener("change", async () => {
+      const meetingId = select.getAttribute("data-meeting-id");
+      if (!meetingId) return;
+
+      const previous = select.getAttribute("data-previous-value") || "";
+      const projectId = (select.value || "").trim();
+      select.disabled = true;
+
+      try {
+        const result = await postJson(`/api/meetings/${meetingId}/project`, {
+          project_id: projectId || null,
+        });
+        const data = result.data || {};
+        select.setAttribute("data-previous-value", data.project_id || "");
+        showToast(result.msg || "Project assignment updated.");
+
+        const link = document.getElementById("meeting-project-link");
+        if (link) {
+          if (data.project_id) {
+            link.href = `/projects/${data.project_id}`;
+            link.classList.remove("d-none");
+          } else {
+            link.href = "#";
+            link.classList.add("d-none");
+          }
+        }
+      } catch (err) {
+        select.value = previous;
+        showToast(err.message || "Unable to update project assignment.");
+      } finally {
+        select.disabled = false;
       }
     });
   });

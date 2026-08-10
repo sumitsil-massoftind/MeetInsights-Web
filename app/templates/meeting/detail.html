@@ -13,17 +13,32 @@
       <div class="min-w-0">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
           <h1 class="page-title mb-0">{{ meeting.name }}</h1>
-          {% with status=meeting.status %}
+          {% with status=meeting.status, status_raw=meeting.status_raw %}
             {% include "components/status_badge.html" %}
           {% endwith %}
         </div>
         <div class="meeting-meta">
-          <span class="meeting-meta-item">
+          <span class="meeting-meta-item meeting-meta-project">
             <i class="bi bi-folder2"></i>
+            <span class="meeting-project-picker-wrap">
+              {% with projects=join_projects, size='sm' %}
+                {% include "components/meeting_project_picker.html" %}
+              {% endwith %}
+            </span>
             {% if meeting.project_id %}
-            <a href="/projects/{{ meeting.project_id }}">{{ meeting.project_name }}</a>
+            <a
+              href="/projects/{{ meeting.project_id }}"
+              class="small meeting-project-link"
+              id="meeting-project-link"
+              title="Open project"
+            >Open</a>
             {% else %}
-            Unassigned
+            <a
+              href="#"
+              class="small meeting-project-link d-none"
+              id="meeting-project-link"
+              title="Open project"
+            >Open</a>
             {% endif %}
           </span>
           <span class="meeting-meta-item">

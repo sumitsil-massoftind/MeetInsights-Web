@@ -255,7 +255,8 @@ a:hover {
   color: var(--mi-success);
 }
 
-.badge-status.processing {
+.badge-status.processing,
+.badge-status.queued {
   background: #fffbeb;
   color: var(--mi-warning);
 }
@@ -263,6 +264,11 @@ a:hover {
 .badge-status.recording {
   background: #fef2f2;
   color: var(--mi-danger);
+}
+
+.badge-status.failed {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .badge-status .dot {
@@ -750,6 +756,30 @@ a:hover {
 
 .meeting-meta-item a:hover {
   color: var(--mi-primary);
+}
+
+.meeting-meta-project {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.meeting-project-picker-wrap {
+  min-width: 10.5rem;
+  max-width: 16rem;
+}
+
+.meeting-project-picker {
+  min-width: 9.5rem;
+  max-width: 14rem;
+}
+
+.mi-table .meeting-project-picker {
+  min-width: 9rem;
+  max-width: 12rem;
+}
+
+.meeting-project-link {
+  white-space: nowrap;
 }
 
 .meeting-layout {

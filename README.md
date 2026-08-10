@@ -98,7 +98,8 @@ Request:
 {
   "platform": "google_meet",
   "meeting_url": "https://meet.google.com/abc-defg-hij",
-  "title": "Weekly sync"
+  "title": "Weekly sync",
+  "project_id": "<optional project ObjectId>"
 }
 ```
 
@@ -113,21 +114,26 @@ Response example:
       "platform_label": "Google Meet",
       "meeting_url": "https://meet.google.com/abc-defg-hij",
       "title": "Weekly sync",
-      "status": "queued"
+      "status": "queued",
+      "project_id": "...",
+      "project_name": "Product Launch"
     },
     "status": {
-      "msg": "Meeting started and queued for processing.",
+      "msg": "Bot invited to join the meeting.",
       "action_status": true
     }
   }
 }
 ```
 
+Meetings and projects lists are loaded from MongoDB for the signed-in user. Mapping is **meeting → project** via optional `project_id` on the meeting.
+
 All JSON APIs:
 
 | Method | Path | Body |
 |--------|------|------|
-| POST | `/api/meetings` | platform, meeting_url, title |
+| POST | `/api/meetings` | platform, meeting_url, title, project_id? |
+| POST | `/api/meetings/{id}/project` | project_id (null to unassign) |
 | POST | `/api/meetings/{id}/chat` | message |
 | POST | `/api/projects` | name, description |
 | POST | `/api/projects/{id}/chat` | message, meeting_ids[] |

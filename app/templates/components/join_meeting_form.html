@@ -1,4 +1,4 @@
-{# Reusable form: select platform + paste meeting link #}
+{# Reusable form: select platform + paste meeting link + optional project #}
 <section class="mi-card join-meeting-card {% if compact %}join-meeting-card-compact{% endif %}">
   <div class="mi-card-body">
     {% if not compact %}
@@ -7,7 +7,7 @@
         <h2 class="section-title mb-1">
           <i class="bi bi-plus-circle text-muted-mi"></i> Join a meeting
         </h2>
-        <p class="text-muted-mi small mb-0">Choose a platform and paste the meeting link to start recording intelligence.</p>
+        <p class="text-muted-mi small mb-0">Choose a platform, paste the meeting link, and optionally map it to a project.</p>
       </div>
     </div>
     {% else %}
@@ -45,7 +45,7 @@
       </div>
 
       <div class="row g-3 align-items-end">
-        <div class="col-lg-8">
+        <div class="col-lg-5">
           <label for="meeting-url" class="form-label small fw-semibold">Meeting link</label>
           <div class="input-group">
             <span class="input-group-text bg-white border-end-0 text-muted-mi">
@@ -62,7 +62,7 @@
             >
           </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-3">
           <label for="meeting-title" class="form-label small fw-semibold">
             Meeting name <span class="text-muted-mi fw-normal">(optional)</span>
           </label>
@@ -74,6 +74,22 @@
             placeholder="e.g. Weekly product sync"
             autocomplete="off"
           >
+        </div>
+        <div class="col-lg-4">
+          <label for="meeting-project" class="form-label small fw-semibold">
+            Project <span class="text-muted-mi fw-normal">(optional)</span>
+          </label>
+          <select class="form-select" id="meeting-project" name="project_id">
+            <option value="">Unassigned</option>
+            {% for project in join_projects or [] %}
+            <option value="{{ project.id }}" {% if selected_project_id and selected_project_id == project.id %}selected{% endif %}>
+              {{ project.name }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if not join_projects %}
+          <p class="form-text small mb-0">Create a project first to map this meeting.</p>
+          {% endif %}
         </div>
       </div>
 

@@ -85,7 +85,7 @@
                   <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
                   <td class="text-muted-mi">{{ meeting.duration_label }}</td>
                   <td>
-                    {% with status=meeting.status %}
+                    {% with status=meeting.status, status_raw=meeting.status_raw %}
                       {% include "components/status_badge.html" %}
                     {% endwith %}
                   </td>

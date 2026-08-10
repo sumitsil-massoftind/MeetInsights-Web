@@ -1,0 +1,15 @@
+{# Project assigner for an existing meeting.
+   Expects: meeting, projects (list) — optional size="sm" #}
+<select
+  class="form-select meeting-project-picker {% if size == 'sm' %}form-select-sm{% endif %}"
+  data-meeting-id="{{ meeting.id }}"
+  data-previous-value="{{ meeting.project_id or '' }}"
+  aria-label="Assign {{ meeting.name }} to project"
+>
+  <option value="" {% if not meeting.project_id %}selected{% endif %}>Unassigned</option>
+  {% for project in projects or [] %}
+  <option value="{{ project.id }}" {% if meeting.project_id == project.id %}selected{% endif %}>
+    {{ project.name }}
+  </option>
+  {% endfor %}
+</select>

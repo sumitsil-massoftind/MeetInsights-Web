@@ -24,6 +24,7 @@ async def start_meeting(
     platform: str,
     meeting_url: str,
     title: str = "",
+    project_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Create a meeting in MongoDB and push its id to RabbitMQ.
@@ -36,6 +37,7 @@ async def start_meeting(
             platform=platform,
             meeting_url=meeting_url,
             title=title,
+            project_id=project_id or None,
         )
     except ValueError as exc:
         code = str(exc)
@@ -43,10 +45,12 @@ async def start_meeting(
             raise MeetingStartError("Please choose a valid meeting platform.") from exc
         if code == "missing_url":
             raise MeetingStartError("Please enter a meeting link.") from exc
-        raise MeetingStartError("Unable to start this meeting. Please try again.") from exc
+        if code == "invalid_project":
+            raise MeetingStartError("Please choose a valid project.") from exc
+        raise MeetingStartError("Unable to invite the bot. Please try again.") from exc
     except Exception as exc:
         logger.exception("Failed to insert meeting for user=%s", user_id)
-        raise MeetingStartError("Unable to start this meeting. Please try again.") from exc
+        raise MeetingStartError("Unable to invite the bot. Please try again.") from exc
 
     meeting_id = meeting["id"]
     try:

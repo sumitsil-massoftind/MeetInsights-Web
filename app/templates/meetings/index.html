@@ -9,9 +9,11 @@
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <div class="btn-group btn-group-sm" role="group" aria-label="Filter by status">
       <a href="/meetings" class="btn {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
-      <a href="/meetings?status=Completed" class="btn {% if status_filter == 'Completed' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Completed</a>
-      <a href="/meetings?status=Processing" class="btn {% if status_filter == 'Processing' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Processing</a>
-      <a href="/meetings?status=Recording" class="btn {% if status_filter == 'Recording' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Recording</a>
+      <a href="/meetings?status=queued" class="btn {% if status_filter == 'queued' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Queued</a>
+      <a href="/meetings?status=processing" class="btn {% if status_filter == 'processing' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Processing</a>
+      <a href="/meetings?status=recording" class="btn {% if status_filter == 'recording' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Recording</a>
+      <a href="/meetings?status=completed" class="btn {% if status_filter == 'completed' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Completed</a>
+      <a href="/meetings?status=failed" class="btn {% if status_filter == 'failed' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Failed</a>
     </div>
   </div>
 </div>
@@ -43,18 +45,14 @@
           </a>
         </td>
         <td>
-          {% if meeting.project_id %}
-          <a href="/projects/{{ meeting.project_id }}" class="text-muted-mi text-decoration-none">
-            {{ meeting.project_name }}
-          </a>
-          {% else %}
-          <span class="text-muted-mi">Unassigned</span>
-          {% endif %}
+          {% with projects=join_projects, size='sm' %}
+            {% include "components/meeting_project_picker.html" %}
+          {% endwith %}
         </td>
         <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
         <td class="text-muted-mi">{{ meeting.duration_label }}</td>
         <td>
-          {% with status=meeting.status %}
+          {% with status=meeting.status, status_raw=meeting.status_raw %}
             {% include "components/status_badge.html" %}
           {% endwith %}
         </td>
