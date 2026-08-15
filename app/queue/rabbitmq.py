@@ -26,7 +26,12 @@ async def connect_rabbitmq() -> None:
     _connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     _channel = await _connection.channel()
     await _channel.declare_queue(settings.rabbitmq_meeting_queue, durable=True)
-    logger.info("RabbitMQ connected; queue=%s", settings.rabbitmq_meeting_queue)
+    await _channel.declare_queue(settings.rabbitmq_recording_queue, durable=True)
+    logger.info(
+        "RabbitMQ connected; queues=%s, %s",
+        settings.rabbitmq_meeting_queue,
+        settings.rabbitmq_recording_queue,
+    )
 
 
 async def close_rabbitmq() -> None:
@@ -47,24 +52,36 @@ async def _ensure_channel() -> AbstractChannel:
     return _channel
 
 
-async def publish_meeting_id(meeting_id: str) -> None:
-    """
-    Publish the meeting id for further processing.
-
-    Message body (JSON): {"id": "<meeting_id>"}
-    Queue name from RABBITMQ_MEETING_QUEUE (default: meetinsights.meetings).
-    """
-    settings = get_settings()
+async def _publish_id(meeting_id: str, queue: str) -> None:
     channel = await _ensure_channel()
-    await channel.declare_queue(settings.rabbitmq_meeting_queue, durable=True)
+    await channel.declare_queue(queue, durable=True)
     body = json.dumps({"id": str(meeting_id)}).encode("utf-8")
     message = Message(
         body=body,
         content_type="application/json",
         delivery_mode=DeliveryMode.PERSISTENT,
     )
-    await channel.default_exchange.publish(
-        message,
-        routing_key=settings.rabbitmq_meeting_queue,
-    )
-    logger.info("Published meeting id=%s to queue=%s", meeting_id, settings.rabbitmq_meeting_queue)
+    await channel.default_exchange.publish(message, routing_key=queue)
+    logger.info("Published meeting id=%s to queue=%s", meeting_id, queue)
+
+
+async def publish_meeting_id(meeting_id: str) -> None:
+    """
+    Publish the meeting id for the bot to join.
+
+    Message body (JSON): {"id": "<meeting_id>"}
+    Queue name from RABBITMQ_MEETING_QUEUE (default: meetinsights.meetings).
+    """
+    settings = get_settings()
+    await _publish_id(meeting_id, settings.rabbitmq_meeting_queue)
+
+
+async def publish_recording_ready(meeting_id: str) -> None:
+    """
+    Publish the meeting id so MeetInsight can process the stored recording.
+
+    Message body (JSON): {"id": "<meeting_id>"}
+    Queue name from RABBITMQ_RECORDING_QUEUE (default: meetinsights.recordings).
+    """
+    settings = get_settings()
+    await _publish_id(meeting_id, settings.rabbitmq_recording_queue)

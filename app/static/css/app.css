@@ -1215,3 +1215,125 @@ a:hover {
 .join-meeting-form .input-group .form-control {
   border-radius: 0 10px 10px 0;
 }
+
+.meeting-source-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--mi-bg);
+  border: 1px solid var(--mi-border);
+  border-radius: 12px;
+}
+
+.meeting-source-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  color: var(--mi-text-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meeting-source-switch-btn i {
+  font-size: 1rem;
+}
+
+.meeting-source-switch-btn:hover {
+  color: var(--mi-text);
+}
+
+.meeting-source-switch-btn.active {
+  background: var(--mi-surface);
+  color: var(--mi-text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.meeting-source-switch-btn:focus-visible {
+  outline: 2px solid var(--mi-primary);
+  outline-offset: 2px;
+}
+
+.join-meeting-card-compact .platform-option-face {
+  min-height: 72px;
+  padding: 0.7rem 0.5rem;
+}
+
+.upload-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 132px;
+  padding: 1.25rem 1rem;
+  border: 1.5px dashed var(--mi-border);
+  border-radius: var(--mi-radius);
+  background: var(--mi-bg);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.is-dragover {
+  border-color: var(--mi-primary);
+  background: var(--mi-primary-soft);
+}
+
+.upload-dropzone-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-dropzone-icon {
+  font-size: 1.6rem;
+  color: var(--mi-primary);
+  line-height: 1;
+}
+
+.upload-dropzone-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mi-text);
+}
+
+.upload-dropzone-hint,
+.upload-dropzone-file {
+  font-size: 0.8rem;
+  color: var(--mi-text-muted);
+}
+
+.upload-dropzone.has-file .upload-dropzone-hint {
+  display: none;
+}
+
+.badge-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--mi-info);
+  background: #e0f2fe;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}

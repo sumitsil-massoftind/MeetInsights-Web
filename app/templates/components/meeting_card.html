@@ -14,9 +14,14 @@
       {% endif %}
       <div class="flex-grow-1 min-w-0">
         <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
-          <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
-            {{ meeting.name }}
-          </a>
+          <div class="d-flex flex-wrap align-items-center gap-2 min-w-0">
+            <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
+              {{ meeting.name }}
+            </a>
+            {% if meeting.source == "upload" %}
+            <span class="badge-source" title="Uploaded recording"><i class="bi bi-cloud-arrow-up"></i> Uploaded</span>
+            {% endif %}
+          </div>
           {% with status=meeting.status, status_raw=meeting.status_raw %}
             {% include "components/status_badge.html" %}
           {% endwith %}

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.auth.config import get_settings
 from app.db import meetings as meetings_repo
 from app.db import projects as projects_repo
 
@@ -46,6 +47,7 @@ async def meetings_list(request: Request, page: int = 1, status: str = ""):
             "total_pages": total_pages,
             "total": total,
             "status_filter": status,
+            "max_upload_bytes": get_settings().max_upload_bytes,
         },
     )
 

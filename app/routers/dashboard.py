@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.auth.config import get_settings
 from app.db import meetings as meetings_repo
 from app.db import projects as projects_repo
 
@@ -48,5 +49,6 @@ async def dashboard(request: Request):
             "recent_meetings": recent_meetings,
             "recent_projects": recent_projects,
             "join_projects": join_projects,
+            "max_upload_bytes": get_settings().max_upload_bytes,
         },
     )

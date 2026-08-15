@@ -72,6 +72,18 @@ async function postJson(url, body) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".meeting-source-switch").forEach((switchEl) => {
+    switchEl.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
+      btn.addEventListener("shown.bs.tab", () => {
+        switchEl.querySelectorAll(".meeting-source-switch-btn").forEach((other) => {
+          const on = other === btn;
+          other.classList.toggle("active", on);
+          other.setAttribute("aria-selected", on ? "true" : "false");
+        });
+      });
+    });
+  });
+
   const platformPlaceholders = {
     google_meet: "https://meet.google.com/abc-defg-hij",
     zoom: "https://zoom.us/j/1234567890",
@@ -159,6 +171,158 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast(err.message || "Unable to create project. Please try again.");
       } finally {
         if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(".upload-recording-form").forEach((form) => {
+    const dropzone = form.querySelector("[data-dropzone]");
+    const fileInput = form.querySelector('input[type="file"][name="file"]');
+    const fileLabel = form.querySelector("[data-file-label]");
+    const allowedExt = [".mp4", ".webm", ".mov", ".mkv"];
+    const maxBytes = Number(form.getAttribute("data-max-bytes")) || 2147483648;
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    }
+
+    function fileExtension(name) {
+      const idx = String(name || "").lastIndexOf(".");
+      return idx >= 0 ? String(name).slice(idx).toLowerCase() : "";
+    }
+
+    function syncFileLabel() {
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      if (!dropzone) return;
+      if (!file) {
+        dropzone.classList.remove("has-file");
+        if (fileLabel) {
+          fileLabel.textContent = "";
+          fileLabel.classList.add("d-none");
+        }
+        return;
+      }
+      dropzone.classList.add("has-file");
+      if (fileLabel) {
+        fileLabel.textContent = `${file.name} · ${formatBytes(file.size)}`;
+        fileLabel.classList.remove("d-none");
+      }
+    }
+
+    function validateFile(file) {
+      if (!file) {
+        showToast("Please choose a video file to upload.");
+        return false;
+      }
+      if (!allowedExt.includes(fileExtension(file.name))) {
+        showToast("Please upload an MP4, WebM, MOV, or MKV video file.");
+        return false;
+      }
+      if (file.size > maxBytes) {
+        showToast("This video is too large to upload. Please choose a smaller file.");
+        return false;
+      }
+      return true;
+    }
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropzone.classList.add("is-dragover");
+      });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+      dropzone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("is-dragover");
+        const dropped = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (!dropped) return;
+        if (!validateFile(dropped)) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(dropped);
+        fileInput.files = transfer.files;
+        syncFileLabel();
+      });
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (file && !validateFile(file)) {
+          fileInput.value = "";
+        }
+        syncFileLabel();
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const url = form.getAttribute("data-api-url") || "/api/meetings/upload";
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      if (!validateFile(file)) return;
+
+      const body = new FormData();
+      body.append("file", file);
+      const title = (form.querySelector('input[name="title"]') || {}).value || "";
+      const platform = (form.querySelector('select[name="upload_platform"]') || {}).value || "";
+      const projectSelect = form.querySelector('select[name="project_id"]');
+      const projectId = projectSelect ? (projectSelect.value || "").trim() : "";
+      if (title.trim()) body.append("title", title.trim());
+      if (platform) body.append("platform", platform);
+      if (projectId) body.append("project_id", projectId);
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+        submitBtn.innerHTML =
+          '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Uploading…';
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { Accept: "application/json" },
+          credentials: "same-origin",
+          body,
+        });
+        const text = await response.text();
+        let payload = null;
+        if (text) {
+          try {
+            payload = JSON.parse(text);
+          } catch {
+            payload = null;
+          }
+        }
+        const envelope = payload && payload.response ? payload.response : null;
+        const status = envelope && envelope.status ? envelope.status : null;
+        const data = envelope && envelope.data != null ? envelope.data : {};
+        const msg =
+          (status && status.msg) ||
+          (payload && (payload.detail || payload.message)) ||
+          "Unable to upload the recording. Please try again.";
+        const ok = response.ok && (status ? status.action_status !== false : true);
+        if (!ok) {
+          throw new Error(typeof msg === "string" ? msg : "Upload failed.");
+        }
+
+        const meeting = data || {};
+        showToast(msg || `Uploaded “${meeting.title || "recording"}”.`);
+        form.reset();
+        syncFileLabel();
+        if (window.location.pathname === "/meetings" || window.location.pathname === "/dashboard") {
+          window.setTimeout(() => window.location.reload(), 600);
+        }
+      } catch (err) {
+        showToast(err.message || "Unable to upload the recording. Please try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          if (submitBtn.dataset.originalHtml) {
+            submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+          }
+        }
       }
     });
   });

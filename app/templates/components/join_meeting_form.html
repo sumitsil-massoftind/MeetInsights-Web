@@ -1,106 +1,203 @@
-{# Reusable form: select platform + paste meeting link + optional project #}
+{# Reusable card: invite a bot or upload a previous recording #}
 <section class="mi-card join-meeting-card {% if compact %}join-meeting-card-compact{% endif %}">
   <div class="mi-card-body">
-    {% if not compact %}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
       <div>
         <h2 class="section-title mb-1">
-          <i class="bi bi-plus-circle text-muted-mi"></i> Join a meeting
+          <i class="bi bi-plus-circle text-muted-mi"></i> Add a meeting
         </h2>
-        <p class="text-muted-mi small mb-0">Choose a platform, paste the meeting link, and optionally map it to a project.</p>
+        {% if not compact %}
+        <p class="text-muted-mi small mb-0">Invite the bot to a live call, or upload a recording you already have.</p>
+        {% endif %}
       </div>
     </div>
-    {% else %}
-    <h2 class="section-title mb-3">
-      <i class="bi bi-plus-circle text-muted-mi"></i> Join a meeting
-    </h2>
-    {% endif %}
 
-    <form class="join-meeting-form" data-api-url="/api/meetings" novalidate>
-      <div class="mb-3">
-        <label class="form-label small fw-semibold mb-2">Platform</label>
-        <div class="platform-picker" role="radiogroup" aria-label="Meeting platform">
-          <label class="platform-option">
-            <input type="radio" name="platform" value="google_meet" checked>
-            <span class="platform-option-face">
-              <i class="bi bi-camera-video"></i>
-              <span>Google Meet</span>
-            </span>
-          </label>
-          <label class="platform-option">
-            <input type="radio" name="platform" value="zoom">
-            <span class="platform-option-face">
-              <i class="bi bi-camera-reels"></i>
-              <span>Zoom</span>
-            </span>
-          </label>
-          <label class="platform-option">
-            <input type="radio" name="platform" value="teams">
-            <span class="platform-option-face">
-              <i class="bi bi-people"></i>
-              <span>Microsoft Teams</span>
-            </span>
-          </label>
-        </div>
-      </div>
+    <div class="meeting-source-switch mb-3" role="tablist" aria-label="How to add a meeting">
+      <button
+        class="meeting-source-switch-btn active"
+        id="invite-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#invite-pane"
+        type="button"
+        role="tab"
+        aria-controls="invite-pane"
+        aria-selected="true"
+      >
+        <i class="bi bi-broadcast"></i>
+        <span>Invite bot</span>
+      </button>
+      <button
+        class="meeting-source-switch-btn"
+        id="upload-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#upload-pane"
+        type="button"
+        role="tab"
+        aria-controls="upload-pane"
+        aria-selected="false"
+      >
+        <i class="bi bi-cloud-arrow-up"></i>
+        <span>Upload recording</span>
+      </button>
+    </div>
 
-      <div class="row g-3 align-items-end">
-        <div class="col-lg-5">
-          <label for="meeting-url" class="form-label small fw-semibold">Meeting link</label>
-          <div class="input-group">
-            <span class="input-group-text bg-white border-end-0 text-muted-mi">
-              <i class="bi bi-link-45deg"></i>
-            </span>
-            <input
-              type="url"
-              class="form-control border-start-0"
-              id="meeting-url"
-              name="meeting_url"
-              placeholder="https://meet.google.com/abc-defg-hij"
-              required
-              autocomplete="off"
-            >
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="invite-pane" role="tabpanel" aria-labelledby="invite-tab" tabindex="0">
+        <form class="join-meeting-form" data-api-url="/api/meetings" novalidate>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-2">Platform</label>
+            <div class="platform-picker" role="radiogroup" aria-label="Meeting platform">
+              <label class="platform-option">
+                <input type="radio" name="platform" value="google_meet" checked>
+                <span class="platform-option-face">
+                  <i class="bi bi-camera-video"></i>
+                  <span>Google Meet</span>
+                </span>
+              </label>
+              <label class="platform-option">
+                <input type="radio" name="platform" value="zoom">
+                <span class="platform-option-face">
+                  <i class="bi bi-camera-reels"></i>
+                  <span>Zoom</span>
+                </span>
+              </label>
+              <label class="platform-option">
+                <input type="radio" name="platform" value="teams">
+                <span class="platform-option-face">
+                  <i class="bi bi-people"></i>
+                  <span>Microsoft Teams</span>
+                </span>
+              </label>
+            </div>
           </div>
-        </div>
-        <div class="col-lg-3">
-          <label for="meeting-title" class="form-label small fw-semibold">
-            Meeting name <span class="text-muted-mi fw-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            id="meeting-title"
-            name="title"
-            placeholder="e.g. Weekly product sync"
-            autocomplete="off"
-          >
-        </div>
-        <div class="col-lg-4">
-          <label for="meeting-project" class="form-label small fw-semibold">
-            Project <span class="text-muted-mi fw-normal">(optional)</span>
-          </label>
-          <select class="form-select" id="meeting-project" name="project_id">
-            <option value="">Unassigned</option>
-            {% for project in join_projects or [] %}
-            <option value="{{ project.id }}" {% if selected_project_id and selected_project_id == project.id %}selected{% endif %}>
-              {{ project.name }}
-            </option>
-            {% endfor %}
-          </select>
-          {% if not join_projects %}
-          <p class="form-text small mb-0">Create a project first to map this meeting.</p>
-          {% endif %}
-        </div>
+
+          <div class="row g-3 align-items-end">
+            <div class="col-lg-5">
+              <label for="join-meeting-url" class="form-label small fw-semibold">Meeting link</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted-mi">
+                  <i class="bi bi-link-45deg"></i>
+                </span>
+                <input
+                  type="url"
+                  class="form-control border-start-0"
+                  id="join-meeting-url"
+                  name="meeting_url"
+                  placeholder="https://meet.google.com/abc-defg-hij"
+                  required
+                  autocomplete="off"
+                >
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <label for="join-meeting-title" class="form-label small fw-semibold">
+                Meeting name <span class="text-muted-mi fw-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="join-meeting-title"
+                name="title"
+                placeholder="e.g. Weekly product sync"
+                autocomplete="off"
+              >
+            </div>
+            <div class="col-lg-4">
+              <label for="join-meeting-project" class="form-label small fw-semibold">
+                Project <span class="text-muted-mi fw-normal">(optional)</span>
+              </label>
+              <select class="form-select" id="join-meeting-project" name="project_id">
+                <option value="">Unassigned</option>
+                {% for project in join_projects or [] %}
+                <option value="{{ project.id }}" {% if selected_project_id and selected_project_id == project.id %}selected{% endif %}>
+                  {{ project.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-1">
+            <p class="small text-muted-mi mb-0">
+              Supports Google Meet, Zoom, and Teams links.
+            </p>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-broadcast me-1"></i> Invite bot to join
+            </button>
+          </div>
+        </form>
       </div>
 
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-1">
-        <p class="small text-muted-mi mb-0">
-          Supports Google Meet, Zoom, and Teams links.
-        </p>
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-broadcast me-1"></i> Invite bot to join
-        </button>
+      <div class="tab-pane fade" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" tabindex="0">
+        <form
+          class="upload-recording-form"
+          data-api-url="/api/meetings/upload"
+          data-max-bytes="{{ max_upload_bytes or 2147483648 }}"
+          novalidate
+        >
+          <label class="upload-dropzone mb-3" data-dropzone>
+            <input
+              type="file"
+              name="file"
+              class="upload-dropzone-input"
+              accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv"
+            >
+            <span class="upload-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></span>
+            <span class="upload-dropzone-title">Drop a recording here, or click to browse</span>
+            <span class="upload-dropzone-hint">MP4, WebM, MOV, or MKV</span>
+            <span class="upload-dropzone-file d-none" data-file-label></span>
+          </label>
+
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label for="upload-meeting-title" class="form-label small fw-semibold">
+                Meeting name <span class="text-muted-mi fw-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="upload-meeting-title"
+                name="title"
+                placeholder="Defaults to the file name"
+                autocomplete="off"
+              >
+            </div>
+            <div class="col-md-4">
+              <label for="upload-meeting-platform" class="form-label small fw-semibold">
+                Platform <span class="text-muted-mi fw-normal">(optional)</span>
+              </label>
+              <select class="form-select" id="upload-meeting-platform" name="upload_platform">
+                <option value="">Not specified</option>
+                <option value="google_meet">Google Meet</option>
+                <option value="zoom">Zoom</option>
+                <option value="teams">Microsoft Teams</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="upload-meeting-project" class="form-label small fw-semibold">
+                Project <span class="text-muted-mi fw-normal">(optional)</span>
+              </label>
+              <select class="form-select" id="upload-meeting-project" name="project_id">
+                <option value="">Unassigned</option>
+                {% for project in join_projects or [] %}
+                <option value="{{ project.id }}" {% if selected_project_id and selected_project_id == project.id %}selected{% endif %}>
+                  {{ project.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-1">
+            <p class="small text-muted-mi mb-0">
+              Stored locally and queued for transcript processing.
+            </p>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-cloud-arrow-up me-1"></i> Upload and process
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 </section>

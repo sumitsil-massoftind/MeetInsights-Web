@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from bson import ObjectId
@@ -11,6 +12,9 @@ from bson.errors import InvalidId
 from app.db.mongodb import get_db
 
 ALLOWED_PLATFORMS = frozenset({"google_meet", "zoom", "teams"})
+
+SOURCE_BOT = "bot"
+SOURCE_UPLOAD = "upload"
 
 PLATFORM_LABELS = {
     "google_meet": "Google Meet",
@@ -84,15 +88,24 @@ def serialize_meeting(
     project_oid = doc.get("project_id")
     project_id = str(project_oid) if project_oid else None
     duration = doc.get("duration_minutes")
+    source = doc.get("source") or SOURCE_BOT
+    platform = doc.get("platform")
+    platform_label = PLATFORM_LABELS.get(platform, platform)
+    if source == SOURCE_UPLOAD and not platform_label:
+        platform_label = "Uploaded recording"
 
     return {
         "id": str(doc["_id"]),
         "user_id": str(doc["user_id"]),
-        "platform": doc.get("platform"),
-        "platform_label": PLATFORM_LABELS.get(doc.get("platform", ""), doc.get("platform")),
+        "platform": platform,
+        "platform_label": platform_label,
         "meeting_url": doc.get("meeting_url"),
         "title": title,
         "name": title,
+        "source": source,
+        "recording_filename": doc.get("recording_filename"),
+        "original_filename": doc.get("original_filename"),
+        "file_size_bytes": doc.get("file_size_bytes"),
         "status_raw": normalize_status(raw_status) or raw_status,
         "status": status_label(raw_status),
         "project_id": project_id,
@@ -151,6 +164,75 @@ async def create_meeting(
         "meeting_url": url,
         "title": (title or "").strip() or "Untitled meeting",
         "status": STATUS_QUEUED,
+        "source": SOURCE_BOT,
+        "project_id": project_oid,
+        "created_at": now,
+        "updated_at": now,
+    }
+    result = await get_db().meetings.insert_one(doc)
+    if project_oid:
+        await get_db().projects.update_one(
+            {"_id": project_oid},
+            {"$set": {"updated_at": now}},
+        )
+    created = await get_db().meetings.find_one({"_id": result.inserted_id})
+    return serialize_meeting(created, project_name=project_name)  # type: ignore[return-value]
+
+
+async def create_uploaded_meeting(
+    *,
+    user_id: str | ObjectId,
+    title: str = "",
+    platform: str | None = None,
+    project_id: str | ObjectId | None = None,
+    recording_filename: str,
+    recording_path: str,
+    original_filename: str = "",
+    file_size_bytes: int = 0,
+) -> dict[str, Any]:
+    """Insert a meeting whose recording is already stored locally."""
+    uid = _to_object_id(user_id)
+    if not uid:
+        raise ValueError("invalid_user")
+
+    platform_value = (platform or "").strip()
+    if platform_value and platform_value not in ALLOWED_PLATFORMS:
+        raise ValueError("invalid_platform")
+
+    filename = (recording_filename or "").strip()
+    stored_path = (recording_path or "").strip()
+    if not filename or not stored_path:
+        raise ValueError("missing_recording")
+
+    project_oid = None
+    project_name: str | None = None
+    if project_id not in (None, ""):
+        project_oid = _to_object_id(project_id)
+        if not project_oid:
+            raise ValueError("invalid_project")
+        project = await get_db().projects.find_one({"_id": project_oid, "user_id": uid})
+        if not project:
+            raise ValueError("invalid_project")
+        project_name = project.get("name") or "Project"
+
+    display_title = (title or "").strip()
+    if not display_title:
+        stem = Path(original_filename or filename).stem.replace("-", " ").replace("_", " ").strip()
+        display_title = stem or "Uploaded recording"
+
+    now = _utcnow()
+    doc: dict[str, Any] = {
+        "user_id": uid,
+        "platform": platform_value or None,
+        "meeting_url": None,
+        "title": display_title,
+        "status": STATUS_QUEUED,
+        "source": SOURCE_UPLOAD,
+        "storage": "local",
+        "recording_filename": filename,
+        "recording_path": stored_path,
+        "original_filename": (original_filename or "").strip() or filename,
+        "file_size_bytes": int(file_size_bytes or 0),
         "project_id": project_oid,
         "created_at": now,
         "updated_at": now,

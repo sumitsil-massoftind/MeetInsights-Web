@@ -16,6 +16,9 @@
           {% with status=meeting.status, status_raw=meeting.status_raw %}
             {% include "components/status_badge.html" %}
           {% endwith %}
+          {% if meeting.source == "upload" %}
+          <span class="badge-source" title="Uploaded recording"><i class="bi bi-cloud-arrow-up"></i> Uploaded</span>
+          {% endif %}
         </div>
         <div class="meeting-meta">
           <span class="meeting-meta-item meeting-meta-project">

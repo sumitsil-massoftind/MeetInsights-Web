@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from app.api_response import api_error, api_success
 from app.db.meetings import PLATFORM_LABELS
 from app.mock_data_service import mock_chat_reply
-from app.services.meeting_service import MeetingStartError, start_meeting
+from app.services.meeting_service import MeetingStartError, start_meeting, upload_recording
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,23 @@ class CreateMeetingBody(BaseModel):
 
 class ChatBody(BaseModel):
     message: str = Field(..., min_length=1)
+
+
+def _meeting_payload(meeting: dict) -> dict:
+    return {
+        "id": meeting["id"],
+        "platform": meeting.get("platform"),
+        "platform_label": meeting.get("platform_label")
+        or PLATFORM_LABELS.get(meeting.get("platform") or "", meeting.get("platform")),
+        "meeting_url": meeting.get("meeting_url"),
+        "title": meeting["title"],
+        "status": meeting.get("status_raw") or meeting.get("status"),
+        "source": meeting.get("source"),
+        "recording_filename": meeting.get("recording_filename"),
+        "original_filename": meeting.get("original_filename"),
+        "project_id": meeting.get("project_id"),
+        "project_name": meeting.get("project_name"),
+    }
 
 
 @router.post("")
@@ -48,22 +65,50 @@ async def api_create_meeting(request: Request, body: CreateMeetingBody):
             project_id=(body.project_id or None),
         )
         return api_success(
-            {
-                "id": meeting["id"],
-                "platform": meeting["platform"],
-                "platform_label": meeting.get("platform_label")
-                or PLATFORM_LABELS.get(meeting["platform"], meeting["platform"]),
-                "meeting_url": meeting["meeting_url"],
-                "title": meeting["title"],
-                "status": meeting.get("status_raw") or meeting.get("status"),
-                "project_id": meeting.get("project_id"),
-                "project_name": meeting.get("project_name"),
-            },
+            _meeting_payload(meeting),
             msg="Bot invited to join the meeting.",
             status_code=201,
         )
     except MeetingStartError as exc:
         logger.warning("API start meeting failed: %s", exc.log_message)
+        return api_error(exc.public_message, status_code=400)
+
+
+@router.post("/upload")
+async def api_upload_meeting(
+    request: Request,
+    file: UploadFile = File(...),
+    title: str = Form(""),
+    platform: str = Form(""),
+    project_id: str = Form(""),
+):
+    """
+    Upload a previously recorded meeting video.
+
+    Stores the file in RECORDINGS_DIR, inserts a MongoDB meeting, and publishes
+    {"id": "<meeting_id>"} to the MeetInsight recordings queue.
+
+    Content-Type: multipart/form-data
+    """
+    user = getattr(request.state, "user", None)
+    if not user:
+        return api_error("Please sign in to continue.", status_code=401)
+
+    try:
+        meeting = await upload_recording(
+            user_id=user["_id"],
+            upload=file,
+            title=(title or "").strip(),
+            platform=(platform or "").strip() or None,
+            project_id=(project_id or "").strip() or None,
+        )
+        return api_success(
+            _meeting_payload(meeting),
+            msg="Recording uploaded and queued for processing.",
+            status_code=201,
+        )
+    except MeetingStartError as exc:
+        logger.warning("API upload meeting failed: %s", exc.log_message)
         return api_error(exc.public_message, status_code=400)
 
 

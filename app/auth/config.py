@@ -27,6 +27,19 @@ class Settings:
     # RabbitMQ
     rabbitmq_url: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     rabbitmq_meeting_queue: str = os.getenv("RABBITMQ_MEETING_QUEUE", "meetinsights.meetings")
+    # Recording-ready jobs for MeetInsight (not the bot join queue)
+    rabbitmq_recording_queue: str = os.getenv(
+        "RABBITMQ_RECORDING_QUEUE",
+        "meetinsights.recordings",
+    )
+
+    # Local recordings folder (same path MeetRecorder writes to; not S3 yet)
+    _recordings_dir_raw: str = os.getenv("RECORDINGS_DIR", "").strip()
+    try:
+        _max_upload = int(os.getenv("MAX_UPLOAD_BYTES", str(2 * 1024 * 1024 * 1024)) or 0)
+    except ValueError:
+        _max_upload = 0
+    max_upload_bytes: int = _max_upload if _max_upload > 0 else (2 * 1024 * 1024 * 1024)
 
     # Google OAuth
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -54,6 +67,21 @@ class Settings:
     cookie_samesite: str = os.getenv("COOKIE_SAMESITE", "lax")
     access_cookie_name: str = "mi_access_token"
     refresh_cookie_name: str = "mi_refresh_token"
+
+    @property
+    def recordings_dir(self) -> Path:
+        """
+        Directory where meeting videos are stored.
+
+        Defaults to ../MeetRecorder/recordings so uploads land next to
+        bot recordings. Override with RECORDINGS_DIR (absolute or relative
+        to the MeetInsights-Web project root).
+        """
+        raw = (self._recordings_dir_raw or "").strip()
+        if raw:
+            path = Path(raw)
+            return path.resolve() if path.is_absolute() else (_ROOT / path).resolve()
+        return (_ROOT.parent / "MeetRecorder" / "recordings").resolve()
 
     @property
     def google_configured(self) -> bool:
