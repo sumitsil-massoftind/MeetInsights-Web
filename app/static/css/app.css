@@ -991,6 +991,49 @@ a:hover {
   min-height: 200px;
 }
 
+.transcript-segments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.transcript-segment {
+  background: #f8fafc;
+  border: 1px solid var(--mi-border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.transcript-segment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.transcript-speaker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--mi-primary);
+}
+
+.transcript-time {
+  font-size: 0.75rem;
+  color: var(--mi-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.transcript-segment-text {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #334155;
+}
+
 .activity-item {
   display: flex;
   gap: 0.85rem;

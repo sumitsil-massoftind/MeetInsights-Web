@@ -74,9 +74,26 @@
       <section class="mi-card meeting-transcript-card">
         <div class="mi-card-body d-flex flex-column h-100">
           <h2 class="section-title">
-            <i class="bi bi-chat-left-text text-muted-mi"></i> Transcript Preview
+            <i class="bi bi-chat-left-text text-muted-mi"></i>
+            {% if meeting.has_transcript %}Transcript{% else %}Transcript Preview{% endif %}
           </h2>
+          {% if meeting.transcript_segments %}
+          <div class="transcript-segments flex-grow-1">
+            {% for segment in meeting.transcript_segments %}
+            <article class="transcript-segment">
+              <div class="transcript-segment-meta">
+                <span class="transcript-speaker">{{ segment.speaker }}</span>
+                <span class="transcript-time">{{ segment.start }} – {{ segment.end }}</span>
+              </div>
+              <p class="transcript-segment-text mb-0">{{ segment.text }}</p>
+            </article>
+            {% endfor %}
+          </div>
+          {% elif meeting.transcript %}
+          <div class="transcript-block flex-grow-1">{{ meeting.transcript }}</div>
+          {% else %}
           <div class="transcript-block flex-grow-1">{{ meeting.transcript_preview }}</div>
+          {% endif %}
         </div>
       </section>
     </div>

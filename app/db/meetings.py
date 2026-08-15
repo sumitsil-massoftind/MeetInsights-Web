@@ -94,6 +94,15 @@ def serialize_meeting(
     if source == SOURCE_UPLOAD and not platform_label:
         platform_label = "Uploaded recording"
 
+    full_transcript = (doc.get("transcript") or "").strip()
+    segments = doc.get("transcript_segments") or []
+    speakers = doc.get("speakers") or []
+    preview = (doc.get("transcript_preview") or "").strip()
+    if not preview and full_transcript:
+        preview = full_transcript[:500]
+        if len(full_transcript) > 500:
+            preview = preview.rstrip() + "…"
+
     return {
         "id": str(doc["_id"]),
         "user_id": str(doc["user_id"]),
@@ -115,9 +124,14 @@ def serialize_meeting(
         "date_dt": created,
         "duration_minutes": duration,
         "duration_label": f"{duration} min" if duration else "—",
+        "language": doc.get("language"),
+        "speakers": speakers,
+        "transcript": full_transcript,
+        "transcript_segments": segments,
+        "has_transcript": bool(segments or full_transcript),
         "summary": doc.get("summary")
         or "Summary will appear here once the meeting has been processed.",
-        "transcript_preview": doc.get("transcript_preview")
+        "transcript_preview": preview
         or "Transcript preview will appear after processing completes.",
     }
 

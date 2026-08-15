@@ -104,6 +104,8 @@ The meeting `_id` is then published to RabbitMQ queue `meetinsights.recordings` 
 {"id": "<meeting_id>"}
 ```
 
+MeetInsight consumes that queue, transcribes the file, and writes `transcript`, `transcript_segments`, and `status: completed` back onto the same meeting document.
+
 ### API response format
 
 All `/api/*` responses use this envelope (payload lives under `data`):
