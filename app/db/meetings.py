@@ -26,6 +26,9 @@ PLATFORM_LABELS = {
 STATUS_QUEUED = "queued"
 STATUS_PROCESSING = "processing"
 STATUS_RECORDING = "recording"
+STATUS_RECORDING_INITIATED = "recording_initiated"
+STATUS_RECORDING_COMPLETE = "recording_complete"
+STATUS_RECORDING_FAILED = "recording_failed"
 STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
 
@@ -33,6 +36,9 @@ STATUS_LABELS = {
     STATUS_QUEUED: "Queued",
     STATUS_PROCESSING: "Processing",
     STATUS_RECORDING: "Recording",
+    STATUS_RECORDING_INITIATED: "Starting",
+    STATUS_RECORDING_COMPLETE: "Completed",
+    STATUS_RECORDING_FAILED: "Failed",
     STATUS_COMPLETED: "Completed",
     STATUS_FAILED: "Failed",
 }
@@ -42,8 +48,23 @@ STATUS_ALIASES = {
     "queued": STATUS_QUEUED,
     "processing": STATUS_PROCESSING,
     "recording": STATUS_RECORDING,
+    "recording_initiated": STATUS_RECORDING_INITIATED,
+    "recording_complete": STATUS_RECORDING_COMPLETE,
+    "recording_failed": STATUS_RECORDING_FAILED,
     "completed": STATUS_COMPLETED,
     "failed": STATUS_FAILED,
+}
+
+# UI filters group worker statuses with legacy dashboard statuses
+STATUS_FILTER_GROUPS = {
+    STATUS_QUEUED: [STATUS_QUEUED],
+    STATUS_PROCESSING: [STATUS_PROCESSING, STATUS_RECORDING_INITIATED],
+    STATUS_RECORDING: [STATUS_RECORDING, STATUS_RECORDING_INITIATED],
+    STATUS_COMPLETED: [STATUS_COMPLETED, STATUS_RECORDING_COMPLETE],
+    STATUS_FAILED: [STATUS_FAILED, STATUS_RECORDING_FAILED],
+    STATUS_RECORDING_INITIATED: [STATUS_RECORDING_INITIATED],
+    STATUS_RECORDING_COMPLETE: [STATUS_RECORDING_COMPLETE],
+    STATUS_RECORDING_FAILED: [STATUS_RECORDING_FAILED],
 }
 
 
@@ -64,6 +85,17 @@ def normalize_status(value: str | None) -> str | None:
     if not value:
         return None
     return STATUS_ALIASES.get(value.strip().lower())
+
+
+def status_filter_query(value: str | None) -> dict[str, Any] | None:
+    """Mongo filter for a UI status, including worker lifecycle aliases."""
+    normalized = normalize_status(value)
+    if not normalized:
+        return None
+    group = STATUS_FILTER_GROUPS.get(normalized, [normalized])
+    if len(group) == 1:
+        return {"status": group[0]}
+    return {"status": {"$in": list(group)}}
 
 
 def status_label(raw: str | None) -> str:
@@ -115,6 +147,9 @@ def serialize_meeting(
         "recording_filename": doc.get("recording_filename"),
         "original_filename": doc.get("original_filename"),
         "file_size_bytes": doc.get("file_size_bytes"),
+        "bot_slot": doc.get("bot_slot"),
+        "bot_name": doc.get("bot_name"),
+        "container_name": doc.get("container_name"),
         "status_raw": normalize_status(raw_status) or raw_status,
         "status": status_label(raw_status),
         "project_id": project_id,
@@ -357,9 +392,9 @@ async def list_meetings_for_user(
         return []
 
     query: dict[str, Any] = {"user_id": uid}
-    normalized = normalize_status(status)
-    if normalized:
-        query["status"] = normalized
+    status_q = status_filter_query(status)
+    if status_q:
+        query.update(status_q)
     if project_id is not None:
         poid = _to_object_id(project_id)
         if not poid:
@@ -399,9 +434,9 @@ async def count_meetings_for_user(
     if not uid:
         return 0
     query: dict[str, Any] = {"user_id": uid}
-    normalized = normalize_status(status)
-    if normalized:
-        query["status"] = normalized
+    status_q = status_filter_query(status)
+    if status_q:
+        query.update(status_q)
     if project_id is not None:
         poid = _to_object_id(project_id)
         if not poid:
@@ -434,9 +469,13 @@ async def meeting_stats_for_user(user_id: str | ObjectId) -> dict[str, int]:
 
     return {
         "total_meetings": total,
-        "processing": by_status.get(STATUS_PROCESSING, 0) + by_status.get(STATUS_QUEUED, 0),
-        "completed": by_status.get(STATUS_COMPLETED, 0),
+        "processing": by_status.get(STATUS_PROCESSING, 0)
+        + by_status.get(STATUS_QUEUED, 0)
+        + by_status.get(STATUS_RECORDING_INITIATED, 0),
+        "completed": by_status.get(STATUS_COMPLETED, 0)
+        + by_status.get(STATUS_RECORDING_COMPLETE, 0),
         "recording": by_status.get(STATUS_RECORDING, 0),
         "queued": by_status.get(STATUS_QUEUED, 0),
-        "failed": by_status.get(STATUS_FAILED, 0),
+        "failed": by_status.get(STATUS_FAILED, 0)
+        + by_status.get(STATUS_RECORDING_FAILED, 0),
     }

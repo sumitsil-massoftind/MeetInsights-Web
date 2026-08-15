@@ -250,13 +250,15 @@ a:hover {
   line-height: 1;
 }
 
-.badge-status.completed {
+.badge-status.completed,
+.badge-status.recording_complete {
   background: #ecfdf5;
   color: var(--mi-success);
 }
 
 .badge-status.processing,
-.badge-status.queued {
+.badge-status.queued,
+.badge-status.recording_initiated {
   background: #fffbeb;
   color: var(--mi-warning);
 }
@@ -266,7 +268,8 @@ a:hover {
   color: var(--mi-danger);
 }
 
-.badge-status.failed {
+.badge-status.failed,
+.badge-status.recording_failed {
   background: #fef2f2;
   color: #b91c1c;
 }
