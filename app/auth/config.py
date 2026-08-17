@@ -67,6 +67,7 @@ class Settings:
     cookie_samesite: str = os.getenv("COOKIE_SAMESITE", "lax")
     access_cookie_name: str = "mi_access_token"
     refresh_cookie_name: str = "mi_refresh_token"
+    bearer_handoff_cookie_name: str = "mi_bearer_handoff"
 
     @property
     def recordings_dir(self) -> Path:

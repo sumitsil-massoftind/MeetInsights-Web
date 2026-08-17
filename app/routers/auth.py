@@ -11,6 +11,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from app.api_response import api_error, api_success
 from app.auth.config import get_settings
 from app.auth.errors import public_auth_error
 from app.auth.service import (
@@ -19,6 +20,8 @@ from app.auth.service import (
     google_authorize_url,
     login_with_google_profile,
     logout_request,
+    refresh_bearer_token,
+    set_bearer_handoff_cookie,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,4 +114,27 @@ async def auth_google_callback(
 async def logout(request: Request):
     response = RedirectResponse(url="/login", status_code=303)
     await logout_request(request, response)
+    return response
+
+
+@router.post("/api/auth/refresh")
+async def api_refresh_token(request: Request):
+    """
+    Refresh is authenticated by the HttpOnly session cookie.
+    All other /api/* routes require a verified Bearer access token.
+    """
+    refreshed = await refresh_bearer_token(request)
+    if not refreshed:
+        return api_error("Session expired. Please sign in again.", status_code=401)
+
+    _user, tokens = refreshed
+    response = api_success(
+        {
+            "access_token": tokens.access_token,
+            "token_type": "Bearer",
+            "access_token_expired": tokens.access_token_expired,
+        },
+        msg="Token refreshed successfully.",
+    )
+    set_bearer_handoff_cookie(response, tokens.access_token)
     return response

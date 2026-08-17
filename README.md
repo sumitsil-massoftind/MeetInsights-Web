@@ -45,7 +45,9 @@ cp .env.example .env
 }
 ```
 
-Access tokens are encrypted JWTs (pattern from `src/helper/jwt_helper.ts`) and stored in the `mi_access_token` httpOnly cookie. The opaque refresh token is stored in MongoDB `user_sessions` and the `mi_refresh_token` cookie.
+Access tokens are encrypted JWTs (pattern from `src/helper/jwt_helper.ts`). Browser API calls send them as `Authorization: Bearer <token>`; the server verifies the token and user on every business `/api/*` request. The opaque refresh token remains in MongoDB and an HttpOnly cookie. `/api/auth/refresh` validates that session and returns a new short-lived access token.
+
+Internal HTML links use soft navigation: the next server-rendered shell is fetched and swapped while browser history/back-forward navigation is preserved.
 
 ### Meetings collection
 
@@ -126,7 +128,7 @@ Errors use the same shape with `action_status: false` and an error `msg`.
 
 ### Start meeting API
 
-`POST /api/meetings` — `Content-Type: application/json` (auth cookie required)
+`POST /api/meetings` — `Content-Type: application/json` and `Authorization: Bearer <access-token>`
 
 Request:
 
@@ -170,6 +172,7 @@ All JSON APIs:
 
 | Method | Path | Body |
 |--------|------|------|
+| POST | `/api/auth/refresh` | none (HttpOnly refresh session) |
 | POST | `/api/meetings` | platform, meeting_url, title, project_id? |
 | POST | `/api/meetings/upload` | multipart: file, title?, platform?, project_id? |
 | POST | `/api/meetings/{id}/project` | project_id (null to unassign) |
@@ -181,7 +184,7 @@ JSON APIs use `application/json`. Video upload is the only `multipart/form-data`
 
 ### Upload recording API
 
-`POST /api/meetings/upload` — `Content-Type: multipart/form-data` (auth cookie required)
+`POST /api/meetings/upload` — `Content-Type: multipart/form-data` and `Authorization: Bearer <access-token>`
 
 Fields: `file` (required video), `title`, `platform` (`google_meet` \| `zoom` \| `teams`), `project_id`.
 

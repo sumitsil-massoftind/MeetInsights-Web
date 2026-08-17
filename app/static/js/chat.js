@@ -32,48 +32,10 @@ function appendChatExchange(container, userMessage, assistantMessage) {
 }
 
 async function postJson(url, body) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify(body),
-  });
-
-  let payload = null;
-  const text = await response.text();
-  if (text) {
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = null;
-    }
-  }
-
-  const envelope = payload && payload.response ? payload.response : null;
-  const status = envelope && envelope.status ? envelope.status : null;
-  const data = envelope && envelope.data != null ? envelope.data : {};
-  const msg =
-    (status && status.msg) ||
-    (payload && (payload.detail || payload.message)) ||
-    "Something went wrong. Please try again.";
-  const ok =
-    response.ok &&
-    (status ? status.action_status !== false : true);
-
-  if (!ok) {
-    const err = new Error(typeof msg === "string" ? msg : "Request failed.");
-    err.status = response.status;
-    err.data = data;
-    throw err;
-  }
-
-  return { data, msg, status, payload };
+  return window.MiAuth.postJson(url, body);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initChatPage() {
   document.querySelectorAll(".chat-form").forEach((form) => {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -127,7 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.body.addEventListener("click", (event) => {
+  if (!document.body.dataset.miChatSuggestionsBound) {
+    document.body.dataset.miChatSuggestionsBound = "true";
+    document.body.addEventListener("click", (event) => {
     const suggestion = event.target.closest(".chat-suggestion");
     if (!suggestion) return;
     const prompt = suggestion.getAttribute("data-chat-prompt");
@@ -151,7 +115,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     }
-  });
+    });
+  }
 
   const selectedInput = document.getElementById("selected-meeting-ids");
   const selectionHint = document.getElementById("selection-hint");
@@ -196,4 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   updateSelectionUI();
-});
+}
+
+document.addEventListener("DOMContentLoaded", initChatPage);
+document.addEventListener("mi:page-loaded", initChatPage);

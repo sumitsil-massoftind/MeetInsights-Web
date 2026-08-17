@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import time
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import httpx
 from fastapi import Request, Response
 
 from app.auth.config import Settings, get_settings
-from app.auth.jwt_helper import JWTHelper, generate_session_refresh_token
+from app.auth.jwt_helper import JWTHelper, TokenPair, generate_session_refresh_token
 from app.db import sessions as session_repo
 from app.db import users as user_repo
 
@@ -129,6 +129,7 @@ async def login_with_google_profile(profile: dict[str, Any], response: Response)
         access_max_age=tokens.access_token_expired - int(time.time()),
         refresh_max_age=tokens.refresh_token_expired - int(time.time()),
     )
+    set_bearer_handoff_cookie(response, tokens.access_token)
     return user
 
 
@@ -165,6 +166,68 @@ def clear_auth_cookies(response: Response) -> None:
     settings = get_settings()
     response.delete_cookie(settings.access_cookie_name, path="/")
     response.delete_cookie(settings.refresh_cookie_name, path="/")
+    response.delete_cookie(settings.bearer_handoff_cookie_name, path="/")
+
+
+def set_bearer_handoff_cookie(response: Response, access_token: str) -> None:
+    """Brief JS-readable copy used to seed in-memory/session Bearer auth."""
+    settings = get_settings()
+    response.set_cookie(
+        settings.bearer_handoff_cookie_name,
+        quote(access_token, safe=""),
+        max_age=120,
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        path="/",
+    )
+
+
+def extract_bearer_token(request: Request) -> str | None:
+    value = (request.headers.get("authorization") or "").strip()
+    if not value.lower().startswith("bearer "):
+        return None
+    return value[7:].strip() or None
+
+
+async def resolve_user_from_bearer(request: Request) -> dict[str, Any] | None:
+    """Verify the encrypted access JWT from Authorization and load its user."""
+    token = extract_bearer_token(request)
+    if not token:
+        return None
+    try:
+        payload = JWTHelper().verify_access_token(token)
+        param = payload.get("param") or payload
+        user_id = param.get("user_id")
+        if user_id is None:
+            return None
+        return await user_repo.find_user_by_id(str(user_id))
+    except Exception:
+        return None
+
+
+async def refresh_bearer_token(request: Request) -> tuple[dict[str, Any], TokenPair] | None:
+    """Validate the HttpOnly refresh session and mint a fresh access JWT."""
+    settings = get_settings()
+    refresh = request.cookies.get(settings.refresh_cookie_name)
+    if not refresh:
+        return None
+    session = await session_repo.find_valid_session(refresh)
+    if not session:
+        return None
+    user = await user_repo.find_user_by_id(session["user_id"])
+    if not user:
+        return None
+    tokens = JWTHelper().create_token(
+        {
+            "param": {
+                "user_id": user["_id"],
+                "email": user["email"],
+                "name": user["name"],
+            }
+        }
+    )
+    return user, tokens
 
 
 async def resolve_user_from_request(request: Request) -> dict[str, Any] | None:
@@ -229,6 +292,7 @@ async def reissue_access_cookie(user: dict[str, Any], response: Response) -> Non
         samesite=settings.cookie_samesite,
         path="/",
     )
+    set_bearer_handoff_cookie(response, tokens.access_token)
 
 
 async def logout_request(request: Request, response: Response) -> None:

@@ -14,7 +14,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api_response import api_error
 from app.auth.config import get_settings
-from app.auth.service import reissue_access_cookie, resolve_user_from_request, user_initials
+from app.auth.service import (
+    extract_bearer_token,
+    reissue_access_cookie,
+    resolve_user_from_bearer,
+    resolve_user_from_request,
+    user_initials,
+)
 from app.db.mongodb import close_client, ensure_indexes
 from app.queue.rabbitmq import close_rabbitmq, connect_rabbitmq
 from app.routers import (
@@ -143,6 +149,10 @@ async def auth_middleware(request: Request, call_next):
     request.state.user = None
     request.state.user_initials = "U"
 
+    # Token refresh uses the protected HttpOnly refresh-session cookie.
+    if path == "/api/auth/refresh":
+        return await call_next(request)
+
     if _is_public_path(path):
         if path.startswith("/login"):
             user = await resolve_user_from_request(request)
@@ -150,10 +160,18 @@ async def auth_middleware(request: Request, call_next):
                 return RedirectResponse(url="/dashboard", status_code=302)
         return await call_next(request)
 
+    if path.startswith("/api/"):
+        if not extract_bearer_token(request):
+            return api_error("Missing Authorization Bearer token.", status_code=401)
+        user = await resolve_user_from_bearer(request)
+        if not user:
+            return api_error("Invalid or expired access token.", status_code=401)
+        request.state.user = user
+        request.state.user_initials = user_initials(user.get("name"), user.get("email"))
+        return await call_next(request)
+
     user = await resolve_user_from_request(request)
     if not user:
-        if path.startswith("/api/"):
-            return api_error("Please sign in to continue.", status_code=401)
         return RedirectResponse(url="/login", status_code=302)
 
     reissue = user.pop("_reissue_access", False)

@@ -29,49 +29,10 @@ function showToast(message) {
 }
 
 async function postJson(url, body) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify(body),
-  });
-
-  let payload = null;
-  const text = await response.text();
-  if (text) {
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = null;
-    }
-  }
-
-  const envelope = payload && payload.response ? payload.response : null;
-  const status = envelope && envelope.status ? envelope.status : null;
-  const data = envelope && envelope.data != null ? envelope.data : {};
-  const msg =
-    (status && status.msg) ||
-    (payload && (payload.detail || payload.message)) ||
-    "Something went wrong. Please try again.";
-  const ok =
-    response.ok &&
-    (status ? status.action_status !== false : true);
-
-  if (!ok) {
-    const err = new Error(typeof msg === "string" ? msg : "Request failed.");
-    err.status = response.status;
-    err.data = data;
-    err.payload = payload;
-    throw err;
-  }
-
-  return { data, msg, status, payload };
+  return window.MiAuth.postJson(url, body);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initAppPage() {
   document.querySelectorAll(".meeting-source-switch").forEach((switchEl) => {
     switchEl.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
       btn.addEventListener("shown.bs.tab", () => {
@@ -135,9 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast(result.msg || `Bot invited to join “${meeting.title || "meeting"}”.`);
         form.reset();
         syncJoinMeetingPlaceholder(form);
-        if (window.location.pathname === "/meetings" || window.location.pathname === "/dashboard") {
-          window.setTimeout(() => window.location.reload(), 600);
-        }
       } catch (err) {
         showToast(err.message || "Unable to invite the bot. Please try again.");
       } finally {
@@ -166,7 +124,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (modalEl && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(modalEl).hide();
         }
-        window.setTimeout(() => window.location.reload(), 400);
       } catch (err) {
         showToast(err.message || "Unable to create project. Please try again.");
       } finally {
@@ -280,40 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { Accept: "application/json" },
-          credentials: "same-origin",
-          body,
-        });
-        const text = await response.text();
-        let payload = null;
-        if (text) {
-          try {
-            payload = JSON.parse(text);
-          } catch {
-            payload = null;
-          }
-        }
-        const envelope = payload && payload.response ? payload.response : null;
-        const status = envelope && envelope.status ? envelope.status : null;
-        const data = envelope && envelope.data != null ? envelope.data : {};
-        const msg =
-          (status && status.msg) ||
-          (payload && (payload.detail || payload.message)) ||
-          "Unable to upload the recording. Please try again.";
-        const ok = response.ok && (status ? status.action_status !== false : true);
-        if (!ok) {
-          throw new Error(typeof msg === "string" ? msg : "Upload failed.");
-        }
-
-        const meeting = data || {};
+        const result = await window.MiAuth.postForm(url, body);
+        const meeting = result.data || {};
+        const msg = result.msg;
         showToast(msg || `Uploaded “${meeting.title || "recording"}”.`);
         form.reset();
         syncFileLabel();
-        if (window.location.pathname === "/meetings" || window.location.pathname === "/dashboard") {
-          window.setTimeout(() => window.location.reload(), 600);
-        }
       } catch (err) {
         showToast(err.message || "Unable to upload the recording. Please try again.");
       } finally {
@@ -362,4 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-});
+}
+
+document.addEventListener("DOMContentLoaded", initAppPage);
+document.addEventListener("mi:page-loaded", initAppPage);
