@@ -3,15 +3,23 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app.auth.config import get_settings
 from app.db import meetings as meetings_repo
 from app.db import projects as projects_repo
+from app.services.recording_storage import human_file_size, resolve_recording_path
 
 router = APIRouter(tags=["meetings"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
+
+RECORDING_MEDIA_TYPES = {
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
+    ".mkv": "video/x-matroska",
+}
 
 
 @router.get("/meetings", response_class=HTMLResponse)
@@ -52,6 +60,32 @@ async def meetings_list(request: Request, page: int = 1, status: str = ""):
     )
 
 
+@router.get("/meetings/{meeting_id}/recording")
+async def meeting_recording(request: Request, meeting_id: str, download: bool = False):
+    """Stream a recording owned by the signed-in user for playback or download."""
+    user = request.state.user
+    meeting = await meetings_repo.find_meeting_by_id(meeting_id, user_id=user["_id"])
+    if not meeting:
+        return Response(status_code=404)
+
+    recording_path = resolve_recording_path(meeting.get("recording_filename"))
+    if not recording_path:
+        return Response(status_code=404)
+
+    # Only the server-generated filename is echoed back, so the header stays safe.
+    disposition = f'attachment; filename="{recording_path.name}"' if download else "inline"
+
+    return FileResponse(
+        recording_path,
+        media_type=RECORDING_MEDIA_TYPES.get(recording_path.suffix.lower(), "application/octet-stream"),
+        headers={
+            "Content-Disposition": disposition,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
 @router.get("/meetings/{meeting_id}", response_class=HTMLResponse)
 async def meeting_detail(request: Request, meeting_id: str):
     user = request.state.user
@@ -67,6 +101,10 @@ async def meeting_detail(request: Request, meeting_id: str):
             status_code=404,
         )
 
+    meeting["recording_available"] = bool(
+        resolve_recording_path(meeting.get("recording_filename"))
+    )
+    meeting["recording_size_label"] = human_file_size(meeting.get("file_size_bytes"))
     join_projects = await projects_repo.list_projects_for_user(
         user["_id"],
         owner_name=user.get("name") or "",

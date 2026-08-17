@@ -33,6 +33,29 @@ def unique_recording_name(original_filename: str | None) -> str:
     return f"upload-{uuid.uuid4().hex}{ext}"
 
 
+def human_file_size(size_bytes: int | None) -> str:
+    size = int(size_bytes or 0)
+    if size <= 0:
+        return ""
+    for unit, threshold in (("GB", 1024**3), ("MB", 1024**2), ("KB", 1024)):
+        if size >= threshold:
+            return f"{size / threshold:.1f} {unit}"
+    return f"{size} B"
+
+
+def resolve_recording_path(recording_filename: str | None) -> Path | None:
+    """Resolve a stored recording filename without allowing path traversal."""
+    filename = Path(recording_filename or "").name
+    if not filename or not original_extension(filename):
+        return None
+
+    recordings_dir = get_settings().recordings_dir.resolve()
+    candidate = (recordings_dir / filename).resolve()
+    if candidate.parent != recordings_dir or not candidate.is_file():
+        return None
+    return candidate
+
+
 async def save_uploaded_recording(upload: UploadFile) -> dict[str, str | int]:
     """
     Stream the upload to RECORDINGS_DIR with a unique filename.

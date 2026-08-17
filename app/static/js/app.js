@@ -291,6 +291,41 @@ function initAppPage() {
       }
     });
   });
+
+  document.querySelectorAll("[data-recording-fullscreen]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const player = button.closest(".recording-card")?.querySelector(".recording-player");
+      if (!player) return;
+      if (player.requestFullscreen) {
+        player.requestFullscreen().catch(() => showToast("Full screen is unavailable."));
+      } else if (player.webkitEnterFullscreen) {
+        player.webkitEnterFullscreen();
+      }
+    });
+  });
+
+  document.querySelectorAll(".regenerate-transcript-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const url = button.getAttribute("data-api-url");
+      if (!url || button.disabled) return;
+
+      button.disabled = true;
+      const originalHtml = button.innerHTML;
+      button.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Queuing…';
+
+      try {
+        const result = await postJson(url, {});
+        showToast(result.msg || "Recording queued to regenerate the transcript.");
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Transcript queued';
+        button.title = "Transcription is queued";
+      } catch (err) {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+        showToast(err.message || "Unable to regenerate the transcript. Please try again.");
+      }
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initAppPage);
