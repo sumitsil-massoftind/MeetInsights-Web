@@ -68,6 +68,10 @@ class Settings:
     access_cookie_name: str = "mi_access_token"
     refresh_cookie_name: str = "mi_refresh_token"
     bearer_handoff_cookie_name: str = "mi_bearer_handoff"
+    meetinsight_socket_url: str = os.getenv(
+        "MEETINSIGHT_SOCKET_URL",
+        "http://127.0.0.1:8001",
+    )
 
     @property
     def recordings_dir(self) -> Path:

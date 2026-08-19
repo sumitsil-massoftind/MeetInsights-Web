@@ -52,17 +52,17 @@ async def _ensure_channel() -> AbstractChannel:
     return _channel
 
 
-async def _publish_id(meeting_id: str, queue: str) -> None:
+async def _publish_json(payload: dict, queue: str) -> None:
     channel = await _ensure_channel()
     await channel.declare_queue(queue, durable=True)
-    body = json.dumps({"id": str(meeting_id)}).encode("utf-8")
+    body = json.dumps(payload).encode("utf-8")
     message = Message(
         body=body,
         content_type="application/json",
         delivery_mode=DeliveryMode.PERSISTENT,
     )
     await channel.default_exchange.publish(message, routing_key=queue)
-    logger.info("Published meeting id=%s to queue=%s", meeting_id, queue)
+    logger.info("Published payload=%s to queue=%s", payload, queue)
 
 
 async def publish_meeting_id(meeting_id: str) -> None:
@@ -73,15 +73,18 @@ async def publish_meeting_id(meeting_id: str) -> None:
     Queue name from RABBITMQ_MEETING_QUEUE (default: meetinsights.meetings).
     """
     settings = get_settings()
-    await _publish_id(meeting_id, settings.rabbitmq_meeting_queue)
+    await _publish_json({"id": str(meeting_id)}, settings.rabbitmq_meeting_queue)
 
 
 async def publish_recording_ready(meeting_id: str) -> None:
     """
     Publish the meeting id so MeetInsight can process the stored recording.
 
-    Message body (JSON): {"id": "<meeting_id>"}
+    Message body (JSON): {"id": "<meeting_id>", "job": "transcribe"}
     Queue name from RABBITMQ_RECORDING_QUEUE (default: meetinsights.recordings).
     """
     settings = get_settings()
-    await _publish_id(meeting_id, settings.rabbitmq_recording_queue)
+    await _publish_json(
+        {"id": str(meeting_id), "job": "transcribe"},
+        settings.rabbitmq_recording_queue,
+    )

@@ -168,6 +168,8 @@ Meetings and projects lists are loaded from MongoDB for the signed-in user. Mapp
 
 Live bot invites go to queue `meetinsights.meetings`. Uploaded recordings go to queue `meetinsights.recordings` so MeetInsight can process them without MeetRecorder trying to join a call.
 
+**Regenerate summary** uses Socket.IO (`MEETINSIGHT_SOCKET_URL`, default `http://127.0.0.1:8001`). The browser emits `summary:generate` with the meeting id and Bearer token. MeetInsight summarizes the stored transcript and the UI patches `summary:ready` in place.
+
 All JSON APIs:
 
 | Method | Path | Body |
@@ -176,6 +178,7 @@ All JSON APIs:
 | POST | `/api/meetings` | platform, meeting_url, title, project_id? |
 | POST | `/api/meetings/upload` | multipart: file, title?, platform?, project_id? |
 | POST | `/api/meetings/{id}/project` | project_id (null to unassign) |
+| POST | `/api/meetings/{id}/regenerate-transcript` | none |
 | POST | `/api/meetings/{id}/chat` | message |
 | POST | `/api/projects` | name, description |
 | POST | `/api/projects/{id}/chat` | message, meeting_ids[] |

@@ -164,8 +164,12 @@ def serialize_meeting(
         "transcript": full_transcript,
         "transcript_segments": segments,
         "has_transcript": bool(segments or full_transcript),
+        "has_summary": bool((doc.get("summary") or "").strip()),
         "summary": doc.get("summary")
         or "Summary will appear here once the meeting has been processed.",
+        "summary_key_points": doc.get("summary_key_points") or [],
+        "summary_decisions": doc.get("summary_decisions") or [],
+        "summary_action_items": doc.get("summary_action_items") or [],
         "transcript_preview": preview
         or "Transcript preview will appear after processing completes.",
     }

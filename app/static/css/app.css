@@ -808,6 +808,36 @@ a:hover {
   font-size: 0.95rem;
 }
 
+.meeting-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.meeting-summary-subhead {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mi-text-muted);
+}
+
+.meeting-summary-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: #1e293b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.meeting-summary-list li + li {
+  margin-top: 0.25rem;
+}
+
 /* Recording panel — dark media card, deliberately distinct from the white cards */
 .recording-card {
   position: relative;

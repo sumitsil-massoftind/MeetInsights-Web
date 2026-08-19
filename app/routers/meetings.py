@@ -118,5 +118,6 @@ async def meeting_detail(request: Request, meeting_id: str):
             "page_title": meeting["name"],
             "meeting": meeting,
             "join_projects": join_projects,
+            "meetinsight_socket_url": get_settings().meetinsight_socket_url,
         },
     )
