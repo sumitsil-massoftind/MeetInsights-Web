@@ -211,7 +211,13 @@
       </section>
     </div>
 
-    <aside class="chat-panel" aria-label="Meeting chat">
+    <aside
+      class="chat-panel"
+      aria-label="Meeting chat"
+      data-meeting-id="{{ meeting.id }}"
+      data-socket-url="{{ meetinsight_socket_url }}"
+      data-has-summary="{{ 'true' if meeting.has_summary else 'false' }}"
+    >
       <div class="chat-panel-header">
         <div class="d-flex align-items-center gap-2">
           <span class="chat-panel-icon"><i class="bi bi-stars"></i></span>
@@ -225,7 +231,14 @@
         <div class="chat-empty">
           <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
           <p class="chat-empty-title">Chat with this meeting</p>
-          <p class="small text-muted-mi mb-3">Ask about the summary or transcript.</p>
+          <p class="small text-muted-mi mb-3">
+            {% if meeting.has_summary %}
+            Answers use the AI summary only. Nothing is saved when you leave.
+            {% else %}
+            Generate a summary first to start chatting about this meeting.
+            {% endif %}
+          </p>
+          {% if meeting.has_summary %}
           <div class="chat-suggestions">
             <button type="button" class="chat-suggestion" data-chat-prompt="Summarize this meeting in 3 bullet points">
               Summarize in 3 bullets
@@ -237,12 +250,12 @@
               What risks came up?
             </button>
           </div>
+          {% endif %}
         </div>
       </div>
       <div class="chat-input-area">
         <form
           class="chat-form"
-          data-api-url="/api/meetings/{{ meeting.id }}/chat"
           data-chat-kind="meeting"
           novalidate
         >
@@ -251,11 +264,16 @@
               type="text"
               name="message"
               class="form-control"
-              placeholder="Ask anything about this meeting…"
+              placeholder="{% if meeting.has_summary %}Ask anything about this meeting…{% else %}Summary required before chat…{% endif %}"
               autocomplete="off"
-              required
+              {% if not meeting.has_summary %}disabled{% else %}required{% endif %}
             >
-            <button type="submit" class="btn btn-primary chat-send-btn" title="Send">
+            <button
+              type="submit"
+              class="btn btn-primary chat-send-btn"
+              title="Send"
+              {% if not meeting.has_summary %}disabled{% endif %}
+            >
               <i class="bi bi-send"></i>
             </button>
           </div>

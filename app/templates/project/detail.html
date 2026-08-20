@@ -74,6 +74,7 @@
                       class="form-check-input meeting-card-check meeting-select"
                       value="{{ meeting.id }}"
                       id="meeting-{{ meeting.id }}"
+                      data-has-summary="{{ 'true' if meeting.has_summary else 'false' }}"
                       aria-label="Select {{ meeting.name }}"
                     >
                   </td>
@@ -81,6 +82,9 @@
                     <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
                       {{ meeting.name }}
                     </a>
+                    {% if not meeting.has_summary %}
+                    <span class="small text-muted-mi d-block">No summary yet</span>
+                    {% endif %}
                   </td>
                   <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
                   <td class="text-muted-mi">{{ meeting.duration_label }}</td>
@@ -106,7 +110,7 @@
 
           {% if meetings %}
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-            <span id="selection-hint" class="small text-muted-mi">Select one or more meetings to chat about</span>
+            <span id="selection-hint" class="small text-muted-mi">Select one or more meetings with an AI summary</span>
             <span class="small text-muted-mi">{{ meetings|length }} meeting{{ "s" if meetings|length != 1 else "" }}</span>
           </div>
           {% endif %}
@@ -114,7 +118,12 @@
       </section>
     </div>
 
-    <aside class="chat-panel" aria-label="Project chat">
+    <aside
+      class="chat-panel"
+      aria-label="Project chat"
+      data-project-id="{{ project.id }}"
+      data-socket-url="{{ meetinsight_socket_url }}"
+    >
       <div class="chat-panel-header">
         <div class="d-flex align-items-center gap-2">
           <span class="chat-panel-icon"><i class="bi bi-stars"></i></span>
@@ -128,7 +137,9 @@
         <div class="chat-empty">
           <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
           <p class="chat-empty-title">Chat across meetings</p>
-          <p class="small text-muted-mi mb-3">Select meetings on the left, then ask a question.</p>
+          <p class="small text-muted-mi mb-3">
+            Select meetings with an AI summary. Answers use those summaries only and are not saved.
+          </p>
           <div class="chat-suggestions">
             <button type="button" class="chat-suggestion" data-chat-prompt="Summarize the selected meetings">
               Summarize selected meetings
@@ -145,7 +156,6 @@
       <div class="chat-input-area">
         <form
           class="chat-form"
-          data-api-url="/api/projects/{{ project.id }}/chat"
           data-chat-kind="project"
           novalidate
         >

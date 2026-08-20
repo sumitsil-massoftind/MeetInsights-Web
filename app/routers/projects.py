@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.auth.config import get_settings
 from app.db import meetings as meetings_repo
 from app.db import projects as projects_repo
 
@@ -61,5 +62,6 @@ async def project_detail(request: Request, project_id: str):
             "page_title": project["name"],
             "project": project,
             "meetings": meetings,
+            "meetinsight_socket_url": get_settings().meetinsight_socket_url,
         },
     )

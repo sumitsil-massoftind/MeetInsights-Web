@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from app.api_response import api_error, api_success
 from app.db.meetings import PLATFORM_LABELS
-from app.mock_data_service import mock_chat_reply
 from app.queue.rabbitmq import publish_recording_ready
 from app.services.meeting_service import MeetingStartError, start_meeting, upload_recording
 from app.services.recording_storage import resolve_recording_path
@@ -24,10 +23,6 @@ class CreateMeetingBody(BaseModel):
     meeting_url: str = Field(..., min_length=1)
     title: str = ""
     project_id: str | None = None
-
-
-class ChatBody(BaseModel):
-    message: str = Field(..., min_length=1)
 
 
 def _meeting_payload(meeting: dict) -> dict:
@@ -199,26 +194,4 @@ async def api_assign_meeting_project(
             "project_name": project_name if meeting.get("project_id") else None,
         },
         msg=msg,
-    )
-
-
-@router.post("/{meeting_id}/chat")
-async def api_meeting_chat(request: Request, meeting_id: str, body: ChatBody):
-    """Meeting chat — JSON in/out (mock reply for now)."""
-    from app.db import meetings as meetings_repo
-
-    user = getattr(request.state, "user", None)
-    if not user:
-        return api_error("Please sign in to continue.", status_code=401)
-
-    meeting = await meetings_repo.find_meeting_by_id(meeting_id, user_id=user["_id"])
-    reply = mock_chat_reply(body.message.strip())
-    return api_success(
-        {
-            "user_message": body.message.strip(),
-            "assistant_message": reply,
-            "meeting_id": meeting_id,
-            "meeting_name": meeting["name"] if meeting else "this meeting",
-        },
-        msg="Success",
     )

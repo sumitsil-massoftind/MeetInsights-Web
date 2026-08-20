@@ -1,10 +1,12 @@
-/* Socket.IO summary client: MeetInsight generates from the stored transcript. */
+/* MeetInsight Socket.IO client: summary + ephemeral meeting chat. */
 (function (global) {
   const GENERATE_TIMEOUT_MS = 120000;
+  const CHAT_TIMEOUT_MS = 60000;
   const CONNECT_TIMEOUT_MS = 8000;
   let socket = null;
   let socketUrl = "";
   let generatePromise = null;
+  let chatPromise = null;
 
   function escapeHtml(value) {
     if (typeof global.escapeHtml === "function") return global.escapeHtml(value);
@@ -22,6 +24,20 @@
     return `<h3 class="meeting-summary-subhead">${escapeHtml(title)}</h3><ul class="meeting-summary-list">${lis}</ul>`;
   }
 
+  function enableMeetingChat() {
+    const panel = document.querySelector(".chat-panel[data-meeting-id]");
+    if (!panel) return;
+    panel.setAttribute("data-has-summary", "true");
+    const input = panel.querySelector('input[name="message"]');
+    const sendBtn = panel.querySelector(".chat-send-btn");
+    if (input) {
+      input.disabled = false;
+      input.required = true;
+      input.placeholder = "Ask anything about this meeting…";
+    }
+    if (sendBtn) sendBtn.disabled = false;
+  }
+
   function patchSummaryCard(data) {
     const body = document.querySelector(".meeting-summary-body");
     if (!body) return;
@@ -32,6 +48,7 @@
       renderList("Decisions", data.summary_decisions),
       renderList("Action items", data.summary_action_items),
     ].join("");
+    enableMeetingChat();
   }
 
   function openSocket(url, token) {
@@ -140,6 +157,61 @@
     return generatePromise;
   }
 
+  function requestChat(meetingId, message, history, meetingIds) {
+    if (chatPromise) return chatPromise;
+    if (!socket || !socket.connected) {
+      return Promise.reject(new Error("Chat service is not connected."));
+    }
+
+    const ids = Array.isArray(meetingIds) && meetingIds.length
+      ? meetingIds.map((id) => String(id || "").trim()).filter(Boolean)
+      : [meetingId].filter(Boolean);
+
+    chatPromise = new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Chat timed out. Please try again."));
+      }, CHAT_TIMEOUT_MS);
+
+      function matches(payload) {
+        if (!payload) return true;
+        if (payload.meeting_id && ids.includes(payload.meeting_id)) return true;
+        const replyIds = Array.isArray(payload.meeting_ids) ? payload.meeting_ids : [];
+        return !payload.meeting_id || replyIds.some((id) => ids.includes(id));
+      }
+
+      function cleanup() {
+        window.clearTimeout(timer);
+        socket.off("chat:reply", onReply);
+        socket.off("chat:error", onError);
+        chatPromise = null;
+      }
+
+      function onReply(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        resolve(payload || {});
+      }
+
+      function onError(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        reject(new Error((payload && payload.msg) || "Unable to send message."));
+      }
+
+      socket.on("chat:reply", onReply);
+      socket.on("chat:error", onError);
+      socket.emit("chat:message", {
+        meeting_id: ids[0] || meetingId,
+        meeting_ids: ids,
+        message,
+        history: Array.isArray(history) ? history : [],
+      });
+    });
+
+    return chatPromise;
+  }
+
   function bindButtons() {
     const card = document.querySelector(".meeting-summary-card");
     document.querySelectorAll(".regenerate-summary-btn").forEach((button) => {
@@ -182,5 +254,11 @@
   document.addEventListener("DOMContentLoaded", bindButtons);
   document.addEventListener("mi:page-loaded", bindButtons);
 
-  global.MiSummary = { connect, requestSummary, patchSummaryCard };
+  global.MiInsightSocket = {
+    connect,
+    requestSummary,
+    requestChat,
+    patchSummaryCard,
+  };
+  global.MiSummary = global.MiInsightSocket;
 })(window);
