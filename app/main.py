@@ -27,6 +27,7 @@ from app.routers import (
     api_meetings,
     api_projects,
     auth,
+    bots,
     dashboard,
     meetings,
     projects,
@@ -92,6 +93,7 @@ app.include_router(meetings.router)
 app.include_router(api_meetings.router)
 app.include_router(api_projects.router)
 app.include_router(projects.router)
+app.include_router(bots.router)
 app.include_router(settings_router.router)
 
 

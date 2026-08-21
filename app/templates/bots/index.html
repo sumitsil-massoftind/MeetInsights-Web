@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <h1 class="page-title">Bots</h1>
+    <p class="page-subtitle">Live recorder bots — free or in use right now.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="small text-muted-mi" id="bots-updated-label">Updates every 5s</span>
+    <button type="button" class="btn btn-soft btn-sm" id="bots-refresh-btn">
+      <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+    </button>
+  </div>
+</div>
+
+<div
+  class="alert alert-warning {% if bot_status.reachable %}d-none{% endif %} d-flex align-items-start gap-2"
+  role="alert"
+  id="bots-unreachable"
+>
+  <i class="bi bi-exclamation-triangle mt-1"></i>
+  <div>
+    <strong>Worker unreachable</strong>
+    <div class="small mb-0" id="bots-unreachable-msg">
+      {{ bot_status.error or "Start the MeetRecorder worker to see live bot status." }}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4" id="bots-stats">
+  <div class="col-6 col-md-3">
+    <div class="mi-card stat-card h-100">
+      <div class="mi-card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Total bots</div>
+            <div class="stat-value" id="bots-stat-total">{{ bot_status.max_concurrent }}</div>
+          </div>
+          <span class="stat-icon"><i class="bi bi-robot"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="mi-card stat-card h-100">
+      <div class="mi-card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="stat-label mb-2">In use</div>
+            <div class="stat-value" id="bots-stat-used">{{ bot_status.used }}</div>
+          </div>
+          <span class="stat-icon"><i class="bi bi-record-circle"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="mi-card stat-card h-100">
+      <div class="mi-card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Free</div>
+            <div class="stat-value" id="bots-stat-free">{{ bot_status.free }}</div>
+          </div>
+          <span class="stat-icon"><i class="bi bi-check-circle"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="mi-card stat-card h-100">
+      <div class="mi-card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Waiting</div>
+            <div class="stat-value" id="bots-stat-waiting">{{ bot_status.waiting }}</div>
+          </div>
+          <span class="stat-icon"><i class="bi bi-hourglass-split"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="table mi-table" id="bots-table">
+    <thead>
+      <tr>
+        <th>Bot</th>
+        <th>Status</th>
+        <th>Meeting</th>
+        <th>Started</th>
+      </tr>
+    </thead>
+    <tbody id="bots-table-body">
+      {% if bot_status.bots %}
+        {% for bot in bot_status.bots %}
+        <tr data-bot-id="{{ bot.id }}">
+          <td>
+            <div class="fw-semibold">{{ bot.bot_name }}</div>
+            <div class="small text-muted-mi">{{ bot.id }}</div>
+          </td>
+          <td>
+            {% if bot.status == "in_use" %}
+            <span class="badge-status recording"><span class="dot"></span> In use</span>
+            {% else %}
+            <span class="badge-status completed"><span class="dot"></span> Free</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if bot.meeting_id %}
+            <a href="/meetings/{{ bot.meeting_id }}" class="fw-semibold text-decoration-none text-dark">
+              {{ bot.meeting_title or "Untitled meeting" }}
+            </a>
+            {% else %}
+            <span class="text-muted-mi">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted-mi small">
+            {% if bot.acquired_at %}{{ bot.acquired_at }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-muted-mi text-center py-4">
+          No bot slots reported yet. Start the MeetRecorder worker with Docker bots enabled.
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script type="application/json" id="bots-initial-data">{{ bot_status | tojson }}</script>
+{% endblock %}

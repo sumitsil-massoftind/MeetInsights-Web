@@ -72,6 +72,10 @@ class Settings:
         "MEETINSIGHT_SOCKET_URL",
         "http://127.0.0.1:8001",
     )
+    meetrecorder_status_url: str = os.getenv(
+        "MEETRECORDER_STATUS_URL",
+        "http://127.0.0.1:3002",
+    )
 
     @property
     def recordings_dir(self) -> Path:
