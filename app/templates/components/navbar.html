@@ -17,7 +17,7 @@
   </div>
 
   <div class="d-flex align-items-center gap-2 ms-3">
-    <button type="button" class="btn btn-sm btn-light border d-none d-md-inline-flex" title="Notifications">
+    <button type="button" class="btn btn-icon-ghost d-none d-md-inline-flex" title="Notifications">
       <i class="bi bi-bell"></i>
     </button>
     <div class="dropdown">
@@ -29,7 +29,7 @@
       >
         <span class="avatar">{{ request.state.user_initials if request.state.user_initials else "U" }}</span>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm border">
+      <ul class="dropdown-menu dropdown-menu-end mi-menu">
         <li>
           <h6 class="dropdown-header mb-0">
             {{ request.state.user.name if request.state.user else "Account" }}

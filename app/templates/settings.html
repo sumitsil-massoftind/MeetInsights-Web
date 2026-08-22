@@ -2,6 +2,7 @@
 
 {% block content %}
 <div class="page-header">
+  <p class="page-kicker">Account</p>
   <h1 class="page-title">Settings</h1>
   <p class="page-subtitle">Workspace preferences — UI shell only.</p>
 </div>
@@ -10,7 +11,14 @@
   <div class="col-lg-8">
     <div class="mi-card mb-3">
       <div class="mi-card-body">
-        <h2 class="section-title"><i class="bi bi-person text-muted-mi"></i> Profile</h2>
+        <h2 class="section-title"><i class="bi bi-person"></i> Profile</h2>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="avatar avatar-lg">{{ request.state.user_initials if request.state.user_initials else "U" }}</span>
+          <div>
+            <div class="fw-semibold">{{ request.state.user.name if request.state.user else "Account" }}</div>
+            <div class="small text-muted-mi">{{ request.state.user.email if request.state.user else "" }}</div>
+          </div>
+        </div>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Display name</label>
@@ -26,7 +34,7 @@
 
     <div class="mi-card mb-3">
       <div class="mi-card-body">
-        <h2 class="section-title"><i class="bi bi-palette text-muted-mi"></i> Appearance</h2>
+        <h2 class="section-title"><i class="bi bi-palette"></i> Appearance</h2>
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="themeLight" checked disabled>
           <label class="form-check-label" for="themeLight">Light theme (only)</label>
@@ -37,7 +45,7 @@
 
     <div class="mi-card">
       <div class="mi-card-body">
-        <h2 class="section-title"><i class="bi bi-bell text-muted-mi"></i> Notifications</h2>
+        <h2 class="section-title"><i class="bi bi-bell"></i> Notifications</h2>
         <div class="form-check mb-2">
           <input class="form-check-input" type="checkbox" id="n1" checked disabled>
           <label class="form-check-label" for="n1">Meeting processing complete</label>
@@ -57,9 +65,12 @@
   <div class="col-lg-4">
     <div class="mi-card">
       <div class="mi-card-body">
-        <h2 class="section-title"><i class="bi bi-shield-check text-muted-mi"></i> Workspace</h2>
-        <p class="small text-muted-mi mb-2">Insight Labs</p>
-        <p class="small mb-0">Settings controls are present for visual completeness only. No values are saved.</p>
+        <h2 class="section-title"><i class="bi bi-shield-check"></i> Workspace</h2>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="workspace-icon"><i class="bi bi-buildings"></i></span>
+          <span class="fw-semibold">Insight Labs</span>
+        </div>
+        <p class="small mb-0 text-muted-mi">Settings controls are present for visual completeness only. No values are saved.</p>
       </div>
     </div>
   </div>

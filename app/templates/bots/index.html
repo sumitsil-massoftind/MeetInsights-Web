@@ -3,6 +3,7 @@
 {% block content %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
   <div>
+    <p class="page-kicker">Recorders</p>
     <h1 class="page-title">Bots</h1>
     <p class="page-subtitle">Live recorder bots — free or in use right now.</p>
   </div>
@@ -110,7 +111,7 @@
           </td>
           <td>
             {% if bot.meeting_id %}
-            <a href="/meetings/{{ bot.meeting_id }}" class="fw-semibold text-decoration-none text-dark">
+            <a href="/meetings/{{ bot.meeting_id }}" class="fw-semibold text-decoration-none mi-link">
               {{ bot.meeting_title or "Untitled meeting" }}
             </a>
             {% else %}
@@ -124,8 +125,12 @@
         {% endfor %}
       {% else %}
       <tr>
-        <td colspan="4" class="text-muted-mi text-center py-4">
-          No bot slots reported yet. Start the MeetRecorder worker with Docker bots enabled.
+        <td colspan="4">
+          <div class="empty-state">
+            <span class="empty-state-icon"><i class="bi bi-robot"></i></span>
+            <p class="empty-state-title">No bot slots reported yet</p>
+            <p class="text-muted-mi small mb-0">Start the MeetRecorder worker with Docker bots enabled.</p>
+          </div>
         </td>
       </tr>
       {% endif %}

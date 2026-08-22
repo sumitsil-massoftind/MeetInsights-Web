@@ -51,8 +51,12 @@
     if (!bots.length) {
       body.innerHTML = `
         <tr>
-          <td colspan="4" class="text-muted-mi text-center py-4">
-            No bot slots reported yet. Start the MeetRecorder worker with Docker bots enabled.
+          <td colspan="4">
+            <div class="empty-state">
+              <span class="empty-state-icon"><i class="bi bi-robot"></i></span>
+              <p class="empty-state-title">No bot slots reported yet</p>
+              <p class="text-muted-mi small mb-0">Start the MeetRecorder worker with Docker bots enabled.</p>
+            </div>
           </td>
         </tr>`;
       return;
@@ -65,7 +69,7 @@
           ? `<span class="badge-status recording"><span class="dot"></span> In use</span>`
           : `<span class="badge-status completed"><span class="dot"></span> Free</span>`;
         const meeting = bot.meeting_id
-          ? `<a href="/meetings/${escapeHtml(bot.meeting_id)}" class="fw-semibold text-decoration-none text-dark">${escapeHtml(bot.meeting_title || "Untitled meeting")}</a>`
+          ? `<a href="/meetings/${escapeHtml(bot.meeting_id)}" class="fw-semibold text-decoration-none mi-link">${escapeHtml(bot.meeting_title || "Untitled meeting")}</a>`
           : `<span class="text-muted-mi">—</span>`;
         return `
           <tr data-bot-id="${escapeHtml(bot.id)}">

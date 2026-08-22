@@ -12,10 +12,11 @@
         >
       </div>
       {% endif %}
+      <span class="meeting-card-icon" aria-hidden="true"><i class="bi bi-camera-video"></i></span>
       <div class="flex-grow-1 min-w-0">
         <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
           <div class="d-flex flex-wrap align-items-center gap-2 min-w-0">
-            <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none text-dark">
+            <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none meeting-card-title">
               {{ meeting.name }}
             </a>
             {% if meeting.source == "upload" %}

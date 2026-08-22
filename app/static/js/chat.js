@@ -1,51 +1,62 @@
 /* Chat UI — meeting and project chat via Socket.IO. */
 
 function formatChatMarkdown(value) {
-  let text = escapeHtml(String(value || "").trim());
-  if (!text) return "";
+  let source = String(value || "").replace(/\r\n/g, "\n");
+  if (!source.trim()) return "";
 
-  text = text.replace(/\r\n/g, "\n");
-  text = text.replace(/[ \t]*\*[ \t]*\*[ \t]*(?=\*\*)/g, "\n* ");
-  text = text.replace(/([.:!?])[ \t]+\*[ \t]+(?=\*\*)/g, "$1\n* ");
-  text = text.replace(/([.:!?])[ \t]+\*[ \t]+(?=[A-Z])/g, "$1\n* ");
+  // Close an in-progress **bold** marker so a partial reply can still render.
+  if (((source.match(/\*\*/g) || []).length) % 2 === 1) {
+    source += "**";
+  }
+
+  // Gemini often emits inline lists: "Intro: * Item one. * Item two"
+  source = source.replace(/([.!?:])[ \t]+([*\-+])[ \t]+(?=\S)/g, "$1\n$2 ");
+  source = source.replace(/([^\n])[ \t]+([*\-+])[ \t]+(?=\*\*|[A-Z])/g, "$1\n$2 ");
+  source = source.replace(/^[ \t]+([*\-+])[ \t]+(?=\S)/gm, "$1 ");
+
+  let text = escapeHtml(source.trim());
   text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  text = text.replace(/(^|\n)[ \t]*[-*][ \t]+/g, "$1• ");
 
-  const blocks = text
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean);
+  const html = [];
+  let items = [];
+  let ordered = false;
 
-  return blocks
-    .map((block) => {
-      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-      const listLines = lines.filter((line) => line.startsWith("• "));
-      if (listLines.length && listLines.length === lines.length) {
-        const items = listLines
-          .map((line) => `<li>${line.replace(/^•\s+/, "")}</li>`)
-          .join("");
-        return `<ul>${items}</ul>`;
-      }
+  function flushList() {
+    if (!items.length) return;
+    const tag = ordered ? "ol" : "ul";
+    html.push(`<${tag}>${items.map((item) => `<li>${item}</li>`).join("")}</${tag}>`);
+    items = [];
+    ordered = false;
+  }
 
-      const html = [];
-      let items = [];
-      function flushList() {
-        if (!items.length) return;
-        html.push(`<ul>${items.join("")}</ul>`);
-        items = [];
-      }
-      lines.forEach((line) => {
-        if (line.startsWith("• ")) {
-          items.push(`<li>${line.replace(/^•\s+/, "")}</li>`);
-          return;
-        }
-        flushList();
-        html.push(`<p>${line}</p>`);
-      });
+  text.split("\n").forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
       flushList();
-      return html.join("");
-    })
-    .join("");
+      return;
+    }
+
+    const unordered = line.match(/^([*\-+]|•)\s+(.*)$/);
+    if (unordered) {
+      if (items.length && ordered) flushList();
+      ordered = false;
+      items.push(unordered[2]);
+      return;
+    }
+
+    const numbered = line.match(/^(\d+)[.)]\s+(.*)$/);
+    if (numbered) {
+      if (items.length && !ordered) flushList();
+      ordered = true;
+      items.push(numbered[2]);
+      return;
+    }
+
+    flushList();
+    html.push(`<p>${line}</p>`);
+  });
+  flushList();
+  return html.join("");
 }
 
 function escapeHtml(value) {
@@ -114,7 +125,13 @@ function typeAssistantReply(bubble, text) {
       window.clearInterval(bubble._thinkingTimer);
       bubble._thinkingTimer = null;
     }
-    bubble.classList.remove("is-thinking", "is-typing");
+    if (bubble._typeTimer) {
+      window.clearTimeout(bubble._typeTimer);
+      bubble._typeTimer = null;
+    }
+
+    bubble.classList.remove("is-thinking");
+    bubble.classList.add("is-typing");
     const body = document.createElement("div");
     body.className = "chat-assistant-text";
     const typing = bubble.querySelector(".chat-thinking, .chat-typing");
@@ -123,25 +140,33 @@ function typeAssistantReply(bubble, text) {
 
     const full = String(text || "");
     if (!full) {
+      bubble.classList.remove("is-typing");
       resolve();
       return;
     }
 
-    let index = 0;
     const container = bubble.closest(".chat-messages");
-    const step = Math.max(2, Math.ceil(full.length / 180));
+    const step = Math.max(4, Math.ceil(full.length / 120));
+    let index = 0;
 
-    function tick() {
-      index = Math.min(full.length, index + step);
-      body.textContent = full.slice(0, index);
+    function paint(done) {
+      body.innerHTML = formatChatMarkdown(full.slice(0, index));
       scrollChat(container);
-      if (index >= full.length) {
+      if (done) {
+        bubble.classList.remove("is-typing");
         body.innerHTML = formatChatMarkdown(full);
         scrollChat(container);
         resolve();
-        return;
       }
-      window.setTimeout(tick, 16);
+    }
+
+    function tick() {
+      index = Math.min(full.length, index + step);
+      const done = index >= full.length;
+      paint(done);
+      if (!done) {
+        bubble._typeTimer = window.setTimeout(tick, 16);
+      }
     }
 
     tick();
