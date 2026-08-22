@@ -153,11 +153,31 @@
           <div class="meeting-summary-body">
           {% if meeting.has_summary %}
           <p class="meeting-summary-text">{{ meeting.summary }}</p>
+          {% if meeting.summary_meeting_objective %}
+          <h3 class="meeting-summary-subhead">Meeting objective</h3>
+          <p class="meeting-summary-text">{{ meeting.summary_meeting_objective }}</p>
+          {% endif %}
           {% if meeting.summary_key_points %}
           <h3 class="meeting-summary-subhead">Key points</h3>
           <ul class="meeting-summary-list">
             {% for point in meeting.summary_key_points %}
             <li>{{ point }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if meeting.summary_discussion %}
+          <h3 class="meeting-summary-subhead">Discussion</h3>
+          <ul class="meeting-summary-list">
+            {% for item in meeting.summary_discussion %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if meeting.summary_requirements %}
+          <h3 class="meeting-summary-subhead">Requirements</h3>
+          <ul class="meeting-summary-list">
+            {% for item in meeting.summary_requirements %}
+            <li>{{ item }}</li>
             {% endfor %}
           </ul>
           {% endif %}
@@ -173,9 +193,29 @@
           <h3 class="meeting-summary-subhead">Action items</h3>
           <ul class="meeting-summary-list">
             {% for item in meeting.summary_action_items %}
-            <li>{{ item }}</li>
+            <li>
+              {{ item.task }}
+              {% if item.owner or item.deadline %}
+              <span class="text-muted-mi">
+                {% if item.owner %} · {{ item.owner }}{% endif %}
+                {% if item.deadline %} · {{ item.deadline }}{% endif %}
+              </span>
+              {% endif %}
+            </li>
             {% endfor %}
           </ul>
+          {% endif %}
+          {% if meeting.summary_open_questions %}
+          <h3 class="meeting-summary-subhead">Open questions</h3>
+          <ul class="meeting-summary-list">
+            {% for question in meeting.summary_open_questions %}
+            <li>{{ question }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if meeting.summary_outcome %}
+          <h3 class="meeting-summary-subhead">Outcome</h3>
+          <p class="meeting-summary-text mb-0">{{ meeting.summary_outcome }}</p>
           {% endif %}
           {% else %}
           <p class="meeting-summary-text mb-0">{{ meeting.summary }}</p>

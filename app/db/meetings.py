@@ -103,6 +103,23 @@ def status_label(raw: str | None) -> str:
     return STATUS_LABELS.get(key, (raw or "Unknown").title())
 
 
+def _serialize_action_items(raw: Any) -> list[dict[str, str]]:
+    items: list[dict[str, str]] = []
+    for value in raw or []:
+        if isinstance(value, dict):
+            task = str(value.get("task") or "").strip()
+            owner = str(value.get("owner") or "").strip()
+            deadline = str(value.get("deadline") or "").strip()
+        else:
+            task = str(value or "").strip()
+            owner = ""
+            deadline = ""
+        if not task:
+            continue
+        items.append({"task": task, "owner": owner, "deadline": deadline})
+    return items
+
+
 def serialize_meeting(
     doc: dict[str, Any] | None,
     *,
@@ -167,9 +184,14 @@ def serialize_meeting(
         "has_summary": bool((doc.get("summary") or "").strip()),
         "summary": doc.get("summary")
         or "Summary will appear here once the meeting has been processed.",
+        "summary_meeting_objective": doc.get("summary_meeting_objective") or "",
         "summary_key_points": doc.get("summary_key_points") or [],
+        "summary_discussion": doc.get("summary_discussion") or [],
+        "summary_requirements": doc.get("summary_requirements") or [],
         "summary_decisions": doc.get("summary_decisions") or [],
-        "summary_action_items": doc.get("summary_action_items") or [],
+        "summary_action_items": _serialize_action_items(doc.get("summary_action_items")),
+        "summary_open_questions": doc.get("summary_open_questions") or [],
+        "summary_outcome": doc.get("summary_outcome") or "",
         "transcript_preview": preview
         or "Transcript preview will appear after processing completes.",
     }

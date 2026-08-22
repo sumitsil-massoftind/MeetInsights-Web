@@ -24,6 +24,25 @@
     return `<h3 class="meeting-summary-subhead">${escapeHtml(title)}</h3><ul class="meeting-summary-list">${lis}</ul>`;
   }
 
+  function renderActionItems(items) {
+    if (!items || !items.length) return "";
+    const lis = items
+      .map((item) => {
+        if (item && typeof item === "object") {
+          const task = escapeHtml(item.task || "");
+          const extras = [item.owner, item.deadline]
+            .filter(Boolean)
+            .map((part) => escapeHtml(part))
+            .join(" · ");
+          const meta = extras ? ` <span class="text-muted-mi"> · ${extras}</span>` : "";
+          return `<li>${task}${meta}</li>`;
+        }
+        return `<li>${escapeHtml(item)}</li>`;
+      })
+      .join("");
+    return `<h3 class="meeting-summary-subhead">Action items</h3><ul class="meeting-summary-list">${lis}</ul>`;
+  }
+
   function enableMeetingChat() {
     const panel = document.querySelector(".chat-panel[data-meeting-id]");
     if (!panel) return;
@@ -38,15 +57,26 @@
     if (sendBtn) sendBtn.disabled = false;
   }
 
+  function renderText(title, value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    return `<h3 class="meeting-summary-subhead">${escapeHtml(title)}</h3><p class="meeting-summary-text">${escapeHtml(text)}</p>`;
+  }
+
   function patchSummaryCard(data) {
     const body = document.querySelector(".meeting-summary-body");
     if (!body) return;
     const overview = data.summary || "";
     body.innerHTML = [
       `<p class="meeting-summary-text">${escapeHtml(overview)}</p>`,
+      renderText("Meeting objective", data.summary_meeting_objective),
       renderList("Key points", data.summary_key_points),
+      renderList("Discussion", data.summary_discussion),
+      renderList("Requirements", data.summary_requirements),
       renderList("Decisions", data.summary_decisions),
-      renderList("Action items", data.summary_action_items),
+      renderActionItems(data.summary_action_items),
+      renderList("Open questions", data.summary_open_questions),
+      renderText("Outcome", data.summary_outcome),
     ].join("");
     enableMeetingChat();
   }
@@ -91,8 +121,30 @@
     return token;
   }
 
+  function socketIoSrc() {
+    const current = document.querySelector('script[src*="summary-socket.js"]');
+    if (current && current.src) {
+      return current.src.replace(/summary-socket\.js.*$/, "vendor/socket.io.min.js");
+    }
+    return "/static/js/vendor/socket.io.min.js";
+  }
+
+  function ensureIo() {
+    if (typeof global.io === "function") return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = socketIoSrc();
+      script.onload = () => {
+        if (typeof global.io === "function") resolve();
+        else reject(new Error("Socket.IO is not loaded."));
+      };
+      script.onerror = () => reject(new Error("Socket.IO is not loaded."));
+      document.head.appendChild(script);
+    });
+  }
+
   async function connect(url) {
-    if (!global.io) throw new Error("Socket.IO is not loaded.");
+    await ensureIo();
 
     if (socket && socketUrl === url && socket.connected) return socket;
     if (socket) {
