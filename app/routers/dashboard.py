@@ -31,7 +31,6 @@ async def dashboard(request: Request):
         "recording": mstats["recording"],
     }
 
-    recent_meetings = await meetings_repo.list_meetings_for_user(user_id, limit=5)
     recent_projects = await projects_repo.list_projects_for_user(
         user_id,
         limit=4,
@@ -46,7 +45,6 @@ async def dashboard(request: Request):
             "active_nav": "dashboard",
             "page_title": "Dashboard",
             "stats": stats,
-            "recent_meetings": recent_meetings,
             "recent_projects": recent_projects,
             "join_projects": join_projects,
             "max_upload_bytes": get_settings().max_upload_bytes,

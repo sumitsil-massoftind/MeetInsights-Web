@@ -1,6 +1,9 @@
 {% set value = value %}
 {% set label = label %}
 {% set icon = icon or "bi-bar-chart" %}
+{% if href %}
+<a href="{{ href }}" class="stat-card-link h-100">
+{% endif %}
 <div class="mi-card stat-card h-100">
   <div class="mi-card-body">
     <div class="d-flex align-items-start justify-content-between">
@@ -14,3 +17,6 @@
     </div>
   </div>
 </div>
+{% if href %}
+</a>
+{% endif %}

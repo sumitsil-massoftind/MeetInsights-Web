@@ -34,7 +34,6 @@ from app.routers import (
     dashboard,
     meetings,
     projects,
-    settings as settings_router,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,7 +96,6 @@ app.include_router(api_meetings.router)
 app.include_router(api_projects.router)
 app.include_router(projects.router)
 app.include_router(bots.router)
-app.include_router(settings_router.router)
 
 
 def _wants_json(request: Request) -> bool:

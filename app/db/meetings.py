@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 import secrets
 from typing import Any
 
@@ -412,18 +413,17 @@ async def find_meeting_by_id(
     return serialize_meeting(doc, project_name=project_name)
 
 
-async def list_meetings_for_user(
-    user_id: str | ObjectId,
+def _search_regex(term: str) -> dict[str, str]:
+    return {"$regex": re.escape(term), "$options": "i"}
+
+
+async def _meetings_query(
+    uid: ObjectId,
     *,
     status: str | None = None,
     project_id: str | ObjectId | None = None,
-    limit: int | None = None,
-    skip: int = 0,
-) -> list[dict[str, Any]]:
-    uid = _to_object_id(user_id)
-    if not uid:
-        return []
-
+    q: str | None = None,
+) -> dict[str, Any] | None:
     query: dict[str, Any] = {"user_id": uid}
     status_q = status_filter_query(status)
     if status_q:
@@ -431,8 +431,48 @@ async def list_meetings_for_user(
     if project_id is not None:
         poid = _to_object_id(project_id)
         if not poid:
-            return []
+            return None
         query["project_id"] = poid
+
+    term = (q or "").strip()[:80]
+    if term:
+        regex = _search_regex(term)
+        clauses: list[dict[str, Any]] = [{"title": regex}]
+        project_ids = await get_db().projects.distinct(
+            "_id",
+            {"user_id": uid, "name": regex},
+        )
+        if project_ids:
+            clauses.append({"project_id": {"$in": list(project_ids)}})
+        if "unassigned".startswith(term.lower()) and len(term) >= 3:
+            clauses.append(
+                {
+                    "$or": [
+                        {"project_id": None},
+                        {"project_id": {"$exists": False}},
+                    ]
+                }
+            )
+        query["$or"] = clauses
+    return query
+
+
+async def list_meetings_for_user(
+    user_id: str | ObjectId,
+    *,
+    status: str | None = None,
+    project_id: str | ObjectId | None = None,
+    q: str | None = None,
+    limit: int | None = None,
+    skip: int = 0,
+) -> list[dict[str, Any]]:
+    uid = _to_object_id(user_id)
+    if not uid:
+        return []
+
+    query = await _meetings_query(uid, status=status, project_id=project_id, q=q)
+    if query is None:
+        return []
 
     cursor = get_db().meetings.find(query).sort("created_at", -1).skip(skip)
     if limit is not None:
@@ -462,19 +502,14 @@ async def count_meetings_for_user(
     *,
     status: str | None = None,
     project_id: str | ObjectId | None = None,
+    q: str | None = None,
 ) -> int:
     uid = _to_object_id(user_id)
     if not uid:
         return 0
-    query: dict[str, Any] = {"user_id": uid}
-    status_q = status_filter_query(status)
-    if status_q:
-        query.update(status_q)
-    if project_id is not None:
-        poid = _to_object_id(project_id)
-        if not poid:
-            return 0
-        query["project_id"] = poid
+    query = await _meetings_query(uid, status=status, project_id=project_id, q=q)
+    if query is None:
+        return 0
     return int(await get_db().meetings.count_documents(query))
 
 

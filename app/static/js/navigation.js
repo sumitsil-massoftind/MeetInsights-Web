@@ -48,10 +48,23 @@
 
       currentShell.replaceWith(nextShell);
       document.title = parsed.title || document.title;
-      if (push) history.pushState({ miSoftNavigation: true }, "", response.url);
-      window.scrollTo({ top: 0, behavior: "instant" });
+      const nextUrl = new URL(url, window.location.href);
+      if (push) {
+        history.pushState(
+          { miSoftNavigation: true },
+          "",
+          nextUrl.pathname + nextUrl.search + nextUrl.hash
+        );
+      }
+      if (nextUrl.hash) {
+        const target = document.getElementById(decodeURIComponent(nextUrl.hash.slice(1)));
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo({ top: 0, behavior: "instant" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
       document.dispatchEvent(new CustomEvent("mi:page-loaded", {
-        detail: { url: response.url },
+        detail: { url: nextUrl.pathname + nextUrl.search + nextUrl.hash },
       }));
     } catch (error) {
       if (error.name !== "AbortError") {

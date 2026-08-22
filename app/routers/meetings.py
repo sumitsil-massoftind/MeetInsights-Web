@@ -23,11 +23,16 @@ RECORDING_MEDIA_TYPES = {
 
 
 @router.get("/meetings", response_class=HTMLResponse)
-async def meetings_list(request: Request, page: int = 1, status: str = ""):
+async def meetings_list(request: Request, page: int = 1, status: str = "", q: str = ""):
     user = request.state.user
     user_id = user["_id"]
+    search_query = (q or "").strip()[:80]
     per_page = 10
-    total = await meetings_repo.count_meetings_for_user(user_id, status=status or None)
+    total = await meetings_repo.count_meetings_for_user(
+        user_id,
+        status=status or None,
+        q=search_query or None,
+    )
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     skip = (page - 1) * per_page
@@ -35,6 +40,7 @@ async def meetings_list(request: Request, page: int = 1, status: str = ""):
     page_items = await meetings_repo.list_meetings_for_user(
         user_id,
         status=status or None,
+        q=search_query or None,
         limit=per_page,
         skip=skip,
     )
@@ -55,6 +61,7 @@ async def meetings_list(request: Request, page: int = 1, status: str = ""):
             "total_pages": total_pages,
             "total": total,
             "status_filter": status,
+            "search_query": search_query,
             "max_upload_bytes": get_settings().max_upload_bytes,
         },
     )

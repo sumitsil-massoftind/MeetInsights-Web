@@ -1,19 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set first_name = (request.state.user.name or "there").split(" ")[0] %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
   <div>
-    <p class="page-kicker">Overview</p>
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-subtitle">Meetings, projects, and processing at a glance.</p>
+    <p class="page-kicker">Home</p>
+    <h1 class="page-title">Welcome back, {{ first_name }}</h1>
+    <p class="page-subtitle">Capture a meeting here. Open the library when you need the full list.</p>
   </div>
-  <div class="d-flex gap-2">
-    <a href="/meetings" class="btn btn-soft btn-sm">
-      <i class="bi bi-camera-video me-1"></i> View meetings
-    </a>
-    <a href="/projects" class="btn btn-primary btn-sm">
-      <i class="bi bi-folder-plus me-1"></i> Projects
-    </a>
+  <a href="/meetings" class="btn btn-soft btn-sm">
+    <i class="bi bi-camera-video me-1"></i> Open meetings
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    {% with value=stats.total_meetings, label="Total Meetings", icon="bi-camera-video", href="/meetings" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.total_projects, label="Projects", icon="bi-folder2", href="/projects" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.processing, label="Processing", icon="bi-hourglass-split", href="/meetings?status=processing" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-6 col-xl-3">
+    {% with value=stats.completed, label="Completed", icon="bi-check-circle", href="/meetings?status=completed" %}
+      {% include "components/stat_card.html" %}
+    {% endwith %}
   </div>
 </div>
 
@@ -21,51 +40,43 @@
   {% include "components/join_meeting_form.html" %}
 </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-6 col-xl-3">
-    {% with value=stats.total_meetings, label="Total Meetings", icon="bi-camera-video" %}
-      {% include "components/stat_card.html" %}
-    {% endwith %}
-  </div>
-  <div class="col-6 col-xl-3">
-    {% with value=stats.total_projects, label="Projects", icon="bi-folder2" %}
-      {% include "components/stat_card.html" %}
-    {% endwith %}
-  </div>
-  <div class="col-6 col-xl-3">
-    {% with value=stats.processing, label="Processing", icon="bi-hourglass-split" %}
-      {% include "components/stat_card.html" %}
-    {% endwith %}
-  </div>
-  <div class="col-6 col-xl-3">
-    {% with value=stats.completed, label="Completed", icon="bi-check-circle" %}
-      {% include "components/stat_card.html" %}
-    {% endwith %}
-  </div>
-</div>
-
-<div class="mi-card mb-4">
-  <div class="mi-card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="section-title mb-0"><i class="bi bi-camera-video"></i> Recent Meetings</h2>
-      <a href="/meetings" class="small">View all</a>
+<section class="mb-4" aria-labelledby="how-it-works-title">
+  <h2 class="section-title" id="how-it-works-title">How it works</h2>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="mi-card how-step h-100">
+        <div class="mi-card-body">
+          <span class="how-step-num">1</span>
+          <h3 class="how-step-title">Join or upload</h3>
+          <p class="how-step-copy mb-0">Invite the bot to a live call, or drop in a recording you already have.</p>
+        </div>
+      </div>
     </div>
-    <div class="d-flex flex-column gap-2">
-      {% for meeting in recent_meetings %}
-        {% with selectable=false %}
-          {% include "components/meeting_card.html" %}
-        {% endwith %}
-      {% else %}
-        <p class="text-muted-mi small mb-0">No meetings yet. Invite a bot or upload a recording to get started.</p>
-      {% endfor %}
+    <div class="col-md-4">
+      <div class="mi-card how-step h-100">
+        <div class="mi-card-body">
+          <span class="how-step-num">2</span>
+          <h3 class="how-step-title">Transcript and summary</h3>
+          <p class="how-step-copy mb-0">We transcribe the audio and turn it into decisions, actions, and an outcome.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="mi-card how-step h-100">
+        <div class="mi-card-body">
+          <span class="how-step-num">3</span>
+          <h3 class="how-step-title">Ask in chat</h3>
+          <p class="how-step-copy mb-0">Open any meeting and ask questions. Answers use that summary, and they are not saved.</p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
 <div class="mi-card">
   <div class="mi-card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="section-title mb-0"><i class="bi bi-folder2"></i> Recent Projects</h2>
+      <h2 class="section-title mb-0"><i class="bi bi-folder2"></i> Recent projects</h2>
       <a href="/projects" class="small">View all</a>
     </div>
     <div class="row g-3">
@@ -75,7 +86,7 @@
       </div>
       {% else %}
       <div class="col-12">
-        <p class="text-muted-mi small mb-0">No projects yet.</p>
+        <p class="text-muted-mi small mb-0">No projects yet. Create one from the Projects page to group meetings.</p>
       </div>
       {% endfor %}
     </div>
