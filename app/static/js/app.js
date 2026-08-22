@@ -187,6 +187,123 @@ if (!window.__miDeleteListeners) {
   });
 }
 
+function closeTitleEditor(editor, restore) {
+  if (!editor) return;
+  const form = editor.querySelector(".meeting-title-form");
+  const view = editor.querySelector(".meeting-title-view");
+  const input = editor.querySelector(".meeting-title-input");
+  if (restore && input) input.value = editor.getAttribute("data-meeting-title") || "";
+  if (form) form.hidden = true;
+  if (view) view.hidden = false;
+}
+
+function openTitleEditor(editor) {
+  document.querySelectorAll(".meeting-title-editor").forEach((other) => {
+    if (other !== editor) closeTitleEditor(other, true);
+  });
+  const form = editor.querySelector(".meeting-title-form");
+  const view = editor.querySelector(".meeting-title-view");
+  const input = editor.querySelector(".meeting-title-input");
+  if (view) view.hidden = true;
+  if (form) form.hidden = false;
+  if (input) {
+    input.value = editor.getAttribute("data-meeting-title") || "";
+    input.focus();
+    input.select();
+  }
+}
+
+function applyMeetingTitle(editor, title) {
+  const meetingId = editor.getAttribute("data-meeting-id") || "";
+  editor.setAttribute("data-meeting-title", title);
+  const text = editor.querySelector(".meeting-title-text");
+  if (text) text.textContent = title;
+  const input = editor.querySelector(".meeting-title-input");
+  if (input) input.value = title;
+  const editBtn = editor.querySelector(".meeting-title-edit-btn");
+  if (editBtn) editBtn.setAttribute("aria-label", `Rename ${title}`);
+
+  document.querySelectorAll(`[data-delete-meeting][data-meeting-id="${meetingId}"]`).forEach((btn) => {
+    btn.setAttribute("data-meeting-name", title);
+    const aria = btn.getAttribute("aria-label");
+    if (aria) btn.setAttribute("aria-label", `Delete ${title}`);
+  });
+
+  const crumb = document.querySelector(".meeting-detail-header .breadcrumb-item.active");
+  if (crumb) crumb.textContent = title;
+  const recordingTitle = document.querySelector(".recording-title");
+  if (recordingTitle) recordingTitle.textContent = title;
+  if (document.querySelector(".meeting-detail") && title) {
+    document.title = `${title} · Meet Insights`;
+  }
+}
+
+async function saveMeetingTitle(editor) {
+  const meetingId = editor.getAttribute("data-meeting-id");
+  const input = editor.querySelector(".meeting-title-input");
+  const submitBtn = editor.querySelector('.meeting-title-form button[type="submit"]');
+  if (!meetingId || !input) return;
+
+  const title = (input.value || "").trim();
+  const previous = editor.getAttribute("data-meeting-title") || "";
+  if (!title) {
+    showToast("Please enter a meeting name.");
+    input.focus();
+    return;
+  }
+  if (title === previous) {
+    closeTitleEditor(editor, false);
+    return;
+  }
+
+  input.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const result = await postJson(`/api/meetings/${meetingId}/title`, { title });
+    const next = (result.data && result.data.title) || title;
+    applyMeetingTitle(editor, next);
+    closeTitleEditor(editor, false);
+    showToast(result.msg || "Meeting name updated.");
+  } catch (err) {
+    input.value = previous;
+    showToast(err.message || "Unable to rename the meeting. Please try again.");
+  } finally {
+    input.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+if (!window.__miTitleEditListeners) {
+  window.__miTitleEditListeners = true;
+  document.addEventListener("click", (event) => {
+    const editBtn = event.target.closest(".meeting-title-edit-btn");
+    if (editBtn) {
+      event.preventDefault();
+      const editor = editBtn.closest(".meeting-title-editor");
+      if (editor) openTitleEditor(editor);
+      return;
+    }
+    const cancelBtn = event.target.closest(".meeting-title-cancel");
+    if (cancelBtn) {
+      event.preventDefault();
+      const editor = cancelBtn.closest(".meeting-title-editor");
+      closeTitleEditor(editor, true);
+    }
+  });
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest(".meeting-title-form");
+    if (!form) return;
+    event.preventDefault();
+    const editor = form.closest(".meeting-title-editor");
+    if (editor) saveMeetingTitle(editor);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const editor = event.target.closest && event.target.closest(".meeting-title-editor");
+    if (editor) closeTitleEditor(editor, true);
+  });
+}
+
 let openMiSelect = null;
 
 function closeMiSelect(widget) {

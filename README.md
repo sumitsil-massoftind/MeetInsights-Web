@@ -178,6 +178,7 @@ All JSON APIs:
 | POST | `/api/meetings` | platform, meeting_url, title, project_id? |
 | POST | `/api/meetings/upload` | multipart: file, title?, platform?, project_id? |
 | POST | `/api/meetings/{id}/project` | project_id (null to unassign) |
+| POST | `/api/meetings/{id}/title` | title |
 | POST | `/api/meetings/{id}/regenerate-transcript` | none |
 | POST | `/api/projects` | name, description |
 | DELETE | `/api/meetings/{id}` | none |

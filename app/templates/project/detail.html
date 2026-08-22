@@ -92,9 +92,9 @@
                     >
                   </td>
                   <td>
-                    <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none mi-link">
-                      {{ meeting.name }}
-                    </a>
+                    {% with show_link=true %}
+                      {% include "components/meeting_title_editor.html" %}
+                    {% endwith %}
                     {% if not meeting.has_summary %}
                     <span class="small text-muted-mi d-block">No summary yet</span>
                     {% endif %}
@@ -102,7 +102,7 @@
                   <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
                   <td class="text-muted-mi">{{ meeting.duration_label }}</td>
                   <td>
-                    {% with status=meeting.status, status_raw=meeting.status_raw %}
+                    {% with status=meeting.status, status_raw=meeting.status_raw, status_title=meeting.processing_error %}
                       {% include "components/status_badge.html" %}
                     {% endwith %}
                   </td>

@@ -114,6 +114,10 @@ class AssignProjectBody(BaseModel):
     project_id: str | None = None
 
 
+class RenameMeetingBody(BaseModel):
+    title: str = ""
+
+
 @router.post("/{meeting_id}/regenerate-transcript")
 async def api_regenerate_transcript(request: Request, meeting_id: str):
     """Queue an existing recording for transcription again."""
@@ -128,6 +132,11 @@ async def api_regenerate_transcript(request: Request, meeting_id: str):
         return api_error("Meeting not found.", status_code=404)
     if not resolve_recording_path(meeting.get("recording_filename")):
         return api_error("The meeting recording is not available.", status_code=404)
+    if meeting.get("no_audio"):
+        return api_error(
+            "This meeting has no audio, so a transcript cannot be generated.",
+            status_code=400,
+        )
     if meeting.get("status_raw") in {"queued", "processing"}:
         return api_error("Transcription is already queued or processing.", status_code=409)
 
@@ -195,6 +204,41 @@ async def api_assign_meeting_project(
             "project_name": project_name if meeting.get("project_id") else None,
         },
         msg=msg,
+    )
+
+
+@router.post("/{meeting_id}/title")
+async def api_rename_meeting(request: Request, meeting_id: str, body: RenameMeetingBody):
+    """Rename a meeting the signed-in user owns."""
+    from app.db import meetings as meetings_repo
+
+    user = getattr(request.state, "user", None)
+    if not user:
+        return api_error("Please sign in to continue.", status_code=401)
+
+    try:
+        meeting = await meetings_repo.update_meeting_title(
+            meeting_id=meeting_id,
+            user_id=user["_id"],
+            title=body.title,
+        )
+    except ValueError as exc:
+        code = str(exc)
+        if code == "not_found":
+            return api_error("Meeting not found.", status_code=404)
+        if code == "missing_title":
+            return api_error("Please enter a meeting name.", status_code=400)
+        if code == "title_too_long":
+            return api_error("Meeting name is too long.", status_code=400)
+        return api_error("Unable to rename the meeting.", status_code=400)
+    except Exception:
+        logger.exception("Failed to rename meeting=%s", meeting_id)
+        return api_error("Unable to rename the meeting. Please try again.", status_code=500)
+
+    title = meeting.get("title") or meeting.get("name") or "Untitled meeting"
+    return api_success(
+        {"id": meeting["id"], "title": title},
+        msg=f'Meeting renamed to “{title}”.',
     )
 
 

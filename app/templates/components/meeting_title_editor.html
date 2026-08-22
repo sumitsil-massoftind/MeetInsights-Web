@@ -1,0 +1,42 @@
+{% set editor_size = size|default('') %}
+{% set show_link = show_link|default(false) %}
+<div
+  class="meeting-title-editor{% if editor_size == 'lg' %} meeting-title-editor-lg{% endif %}"
+  data-meeting-id="{{ meeting.id }}"
+  data-meeting-title="{{ meeting.name }}"
+>
+  <div class="meeting-title-view">
+    {% if show_link %}
+    <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none mi-link meeting-title-text">
+      {{ meeting.name }}
+    </a>
+    {% else %}
+    <h1 class="page-title mb-0 meeting-title-text">{{ meeting.name }}</h1>
+    {% endif %}
+    <button
+      type="button"
+      class="btn btn-sm btn-soft meeting-title-edit-btn"
+      title="Rename meeting"
+      aria-label="Rename {{ meeting.name }}"
+    >
+      <i class="bi bi-pencil"></i>
+    </button>
+  </div>
+  <form class="meeting-title-form" hidden>
+    <input
+      type="text"
+      class="form-control meeting-title-input{% if editor_size != 'lg' %} form-control-sm{% endif %}"
+      value="{{ meeting.name }}"
+      maxlength="120"
+      required
+      autocomplete="off"
+      aria-label="Meeting name"
+    >
+    <button type="submit" class="btn btn-sm btn-primary" title="Save" aria-label="Save name">
+      <i class="bi bi-check-lg"></i>
+    </button>
+    <button type="button" class="btn btn-sm btn-soft meeting-title-cancel" title="Cancel" aria-label="Cancel rename">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </form>
+</div>

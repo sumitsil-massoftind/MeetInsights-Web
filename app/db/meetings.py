@@ -124,6 +124,13 @@ def _serialize_action_items(raw: Any) -> list[dict[str, str]]:
     return items
 
 
+def _is_no_audio_error(*, code: str = "", message: str = "") -> bool:
+    if (code or "").strip() == "no_audio":
+        return True
+    text = (message or "").lower()
+    return "no audio" in text or "does not contain any stream" in text
+
+
 def serialize_meeting(
     doc: dict[str, Any] | None,
     *,
@@ -156,6 +163,21 @@ def serialize_meeting(
         if len(full_transcript) > 500:
             preview = preview.rstrip() + "…"
 
+    processing_error = (doc.get("processing_error") or "").strip()
+    processing_error_code = (doc.get("processing_error_code") or "").strip()
+    no_audio = _is_no_audio_error(code=processing_error_code, message=processing_error)
+    display_status = "No audio" if no_audio else status_label(raw_status)
+    if no_audio:
+        summary_placeholder = "A summary cannot be created because this meeting has no audio."
+        transcript_placeholder = "A transcript cannot be created because this meeting has no audio."
+        processing_error = processing_error or "This meeting has no audio, so it cannot be transcribed."
+    elif processing_error:
+        summary_placeholder = processing_error
+        transcript_placeholder = processing_error
+    else:
+        summary_placeholder = "Summary will appear here once the meeting has been processed."
+        transcript_placeholder = "Transcript preview will appear after processing completes."
+
     return {
         "id": str(doc["_id"]),
         "user_id": str(doc["user_id"]),
@@ -176,7 +198,10 @@ def serialize_meeting(
         "bot_name": doc.get("bot_name"),
         "container_name": doc.get("container_name"),
         "status_raw": normalize_status(raw_status) or raw_status,
-        "status": status_label(raw_status),
+        "status": display_status,
+        "processing_error": processing_error,
+        "processing_error_code": "no_audio" if no_audio else processing_error_code,
+        "no_audio": no_audio,
         "project_id": project_id,
         "project_name": project_name if project_name is not None else ("Unassigned" if not project_id else "Project"),
         "created_at": created,
@@ -190,8 +215,7 @@ def serialize_meeting(
         "transcript_segments": segments,
         "has_transcript": bool(segments or full_transcript),
         "has_summary": bool((doc.get("summary") or "").strip()),
-        "summary": doc.get("summary")
-        or "Summary will appear here once the meeting has been processed.",
+        "summary": doc.get("summary") or summary_placeholder,
         "summary_meeting_objective": doc.get("summary_meeting_objective") or "",
         "summary_key_points": doc.get("summary_key_points") or [],
         "summary_discussion": doc.get("summary_discussion") or [],
@@ -200,8 +224,7 @@ def serialize_meeting(
         "summary_action_items": _serialize_action_items(doc.get("summary_action_items")),
         "summary_open_questions": doc.get("summary_open_questions") or [],
         "summary_outcome": doc.get("summary_outcome") or "",
-        "transcript_preview": preview
-        or "Transcript preview will appear after processing completes.",
+        "transcript_preview": preview or transcript_placeholder,
     }
 
 
@@ -386,6 +409,39 @@ async def update_meeting_project(
 
     updated = await get_db().meetings.find_one({"_id": mid})
     return serialize_meeting(updated, project_name=project_name)  # type: ignore[return-value]
+
+
+TITLE_MAX_LEN = 120
+
+
+async def update_meeting_title(
+    *,
+    meeting_id: str | ObjectId,
+    user_id: str | ObjectId,
+    title: str,
+) -> dict[str, Any]:
+    """Rename a meeting owned by the signed-in user."""
+    cleaned = (title or "").strip()
+    if not cleaned:
+        raise ValueError("missing_title")
+    if len(cleaned) > TITLE_MAX_LEN:
+        raise ValueError("title_too_long")
+
+    mid = _to_object_id(meeting_id)
+    uid = _to_object_id(user_id)
+    if not mid or not uid:
+        raise ValueError("invalid_meeting")
+
+    existing = await get_db().meetings.find_one({"_id": mid, "user_id": uid})
+    if not existing:
+        raise ValueError("not_found")
+
+    await get_db().meetings.update_one(
+        {"_id": mid, "user_id": uid},
+        {"$set": {"title": cleaned, "updated_at": _utcnow()}},
+    )
+    updated = await get_db().meetings.find_one({"_id": mid})
+    return serialize_meeting(updated)  # type: ignore[return-value]
 
 
 async def find_meeting_by_id(

@@ -25,7 +25,7 @@
             <span class="badge-source badge-source-shared" title="Shared copy"><i class="bi bi-share"></i> Shared</span>
             {% endif %}
           </div>
-          {% with status=meeting.status, status_raw=meeting.status_raw %}
+          {% with status=meeting.status, status_raw=meeting.status_raw, status_title=meeting.processing_error %}
             {% include "components/status_badge.html" %}
           {% endwith %}
         </div>

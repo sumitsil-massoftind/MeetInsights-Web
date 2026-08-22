@@ -12,8 +12,10 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
       <div class="min-w-0">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-          <h1 class="page-title mb-0">{{ meeting.name }}</h1>
-          {% with status=meeting.status, status_raw=meeting.status_raw %}
+          {% with size='lg' %}
+            {% include "components/meeting_title_editor.html" %}
+          {% endwith %}
+          {% with status=meeting.status, status_raw=meeting.status_raw, status_title=meeting.processing_error %}
             {% include "components/status_badge.html" %}
           {% endwith %}
           {% if meeting.source == "upload" %}
@@ -74,7 +76,7 @@
         >
           <i class="bi bi-trash me-1"></i> Delete
         </button>
-        {% if meeting.recording_available %}
+        {% if meeting.recording_available and not meeting.no_audio %}
         <button
           type="button"
           class="btn btn-sm btn-primary regenerate-transcript-btn"
@@ -90,6 +92,24 @@
       </div>
     </div>
   </div>
+
+  {% if meeting.processing_error %}
+  <div class="meeting-error-banner{% if meeting.no_audio %} is-no-audio{% endif %}" role="status">
+    <span class="meeting-error-icon" aria-hidden="true"><i class="bi bi-volume-mute"></i></span>
+    <div>
+      <p class="meeting-error-title">
+        {% if meeting.no_audio %}This meeting has no audio{% else %}Processing failed{% endif %}
+      </p>
+      <p class="meeting-error-copy mb-0">
+        {% if meeting.no_audio %}
+        A transcript and summary cannot be created because the recording has no audio track.
+        {% else %}
+        {{ meeting.processing_error }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="meeting-layout">
     <div class="meeting-main">
@@ -291,7 +311,9 @@
           <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
           <p class="chat-empty-title">Chat with this meeting</p>
           <p class="small text-muted-mi mb-3">
-            {% if meeting.has_summary %}
+            {% if meeting.no_audio %}
+            This meeting has no audio, so chat is not available.
+            {% elif meeting.has_summary %}
             Answers use the AI summary only. Nothing is saved when you leave.
             {% else %}
             Generate a summary first to start chatting about this meeting.
@@ -323,7 +345,7 @@
               type="text"
               name="message"
               class="form-control"
-              placeholder="{% if meeting.has_summary %}Ask anything about this meeting…{% else %}Summary required before chat…{% endif %}"
+              placeholder="{% if meeting.no_audio %}No audio in this meeting…{% elif meeting.has_summary %}Ask anything about this meeting…{% else %}Summary required before chat…{% endif %}"
               autocomplete="off"
               {% if not meeting.has_summary %}disabled{% else %}required{% endif %}
             >

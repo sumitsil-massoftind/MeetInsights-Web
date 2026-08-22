@@ -62,14 +62,16 @@
       {% for meeting in meetings %}
       <tr>
         <td>
-          <a href="/meetings/{{ meeting.id }}" class="fw-semibold text-decoration-none mi-link">
-            {{ meeting.name }}
-          </a>
-          {% if meeting.source == "upload" %}
-          <span class="badge-source ms-1" title="Uploaded recording"><i class="bi bi-cloud-arrow-up"></i> Uploaded</span>
-          {% elif meeting.is_shared %}
-          <span class="badge-source badge-source-shared ms-1" title="Shared copy"><i class="bi bi-share"></i> Shared</span>
-          {% endif %}
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            {% with show_link=true %}
+              {% include "components/meeting_title_editor.html" %}
+            {% endwith %}
+            {% if meeting.source == "upload" %}
+            <span class="badge-source" title="Uploaded recording"><i class="bi bi-cloud-arrow-up"></i> Uploaded</span>
+            {% elif meeting.is_shared %}
+            <span class="badge-source badge-source-shared" title="Shared copy"><i class="bi bi-share"></i> Shared</span>
+            {% endif %}
+          </div>
         </td>
         <td>
           {% with projects=join_projects, size='sm' %}
@@ -79,7 +81,7 @@
         <td class="text-muted-mi">{{ meeting.date_dt.strftime("%b %d, %Y") }}</td>
         <td class="text-muted-mi">{{ meeting.duration_label }}</td>
         <td>
-          {% with status=meeting.status, status_raw=meeting.status_raw %}
+          {% with status=meeting.status, status_raw=meeting.status_raw, status_title=meeting.processing_error %}
             {% include "components/status_badge.html" %}
           {% endwith %}
         </td>

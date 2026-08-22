@@ -1,6 +1,6 @@
 {% set status = status or "Queued" %}
 {% set status_class = (status_raw if status_raw is defined and status_raw else status)|lower %}
-<span class="badge-status {{ status_class }}">
+<span class="badge-status {{ status_class }}"{% if status_title %} title="{{ status_title }}"{% endif %}>
   <span class="dot"></span>
   {{ status }}
 </span>
