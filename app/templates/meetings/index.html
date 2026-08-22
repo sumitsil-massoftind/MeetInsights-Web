@@ -84,9 +84,22 @@
           {% endwith %}
         </td>
         <td class="text-end">
-          <a href="/meetings/{{ meeting.id }}" class="btn btn-sm btn-soft" title="Open">
-            <i class="bi bi-arrow-up-right"></i>
-          </a>
+          <div class="d-inline-flex gap-1">
+            <a href="/meetings/{{ meeting.id }}" class="btn btn-sm btn-soft" title="Open">
+              <i class="bi bi-arrow-up-right"></i>
+            </a>
+            <button
+              type="button"
+              class="btn btn-sm btn-danger-soft"
+              data-delete-meeting
+              data-meeting-id="{{ meeting.id }}"
+              data-meeting-name="{{ meeting.name }}"
+              title="Delete meeting"
+              aria-label="Delete {{ meeting.name }}"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
         </td>
       </tr>
       {% else %}

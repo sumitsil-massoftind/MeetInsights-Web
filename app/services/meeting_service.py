@@ -11,6 +11,7 @@ from app.db import meetings as meetings_repo
 from app.queue.rabbitmq import publish_meeting_id, publish_recording_ready
 from app.services.recording_storage import (
     RecordingStorageError,
+    delete_meeting_recordings,
     delete_recording,
     save_uploaded_recording,
 )
@@ -130,3 +131,17 @@ async def upload_recording(
         ) from exc
 
     return meeting
+
+
+async def delete_user_meeting(*, user_id: str, meeting_id: str) -> dict[str, Any]:
+    deleted = await meetings_repo.pop_meeting_for_user(meeting_id=meeting_id, user_id=user_id)
+    if not deleted:
+        raise MeetingStartError("Meeting not found.")
+
+    filename = deleted.get("recording_filename")
+    remaining = await meetings_repo.count_recording_refs(filename)
+    if remaining == 0:
+        delete_meeting_recordings(filename, deleted.get("recording_path"))
+
+    title = deleted.get("title") or "Untitled meeting"
+    return {"id": str(deleted["_id"]), "title": title}

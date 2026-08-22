@@ -180,6 +180,8 @@ All JSON APIs:
 | POST | `/api/meetings/{id}/project` | project_id (null to unassign) |
 | POST | `/api/meetings/{id}/regenerate-transcript` | none |
 | POST | `/api/projects` | name, description |
+| DELETE | `/api/meetings/{id}` | none |
+| DELETE | `/api/projects/{id}` | `delete_meetings=false` (default) unassigns meetings; `true` deletes them too |
 
 JSON APIs use `application/json`. Video upload is the only `multipart/form-data` endpoint.
 

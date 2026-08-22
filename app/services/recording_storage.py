@@ -126,3 +126,24 @@ def delete_recording(path: str | Path | None) -> None:
         Path(path).unlink(missing_ok=True)
     except OSError:
         logger.warning("Could not delete recording file %s", path)
+
+
+def delete_meeting_recordings(
+    recording_filename: str | None,
+    recording_path: str | None = None,
+) -> None:
+    """Delete files for a meeting, staying inside RECORDINGS_DIR."""
+    resolved = resolve_recording_path(recording_filename)
+    if resolved:
+        delete_recording(resolved)
+
+    if not recording_path:
+        return
+    try:
+        recordings_dir = get_settings().recordings_dir.resolve()
+        candidate = Path(recording_path).resolve()
+        candidate.relative_to(recordings_dir)
+    except (OSError, ValueError):
+        return
+    if candidate.is_file() and candidate != resolved:
+        delete_recording(candidate)

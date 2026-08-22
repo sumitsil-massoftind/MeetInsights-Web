@@ -32,6 +32,161 @@ async function postJson(url, body) {
   return window.MiAuth.postJson(url, body);
 }
 
+async function deleteJson(url) {
+  return window.MiAuth.deleteJson(url);
+}
+
+let pendingDelete = null;
+
+function hideModal(id) {
+  const el = document.getElementById(id);
+  if (el && window.bootstrap) {
+    bootstrap.Modal.getOrCreateInstance(el).hide();
+  }
+  document.body.classList.remove("modal-open");
+  document.body.style.removeProperty("overflow");
+  document.body.style.removeProperty("padding-right");
+  document.querySelectorAll(".modal-backdrop").forEach((node) => node.remove());
+}
+
+function showModal(id) {
+  const el = document.getElementById(id);
+  if (!el || !window.bootstrap) return;
+  bootstrap.Modal.getOrCreateInstance(el).show();
+}
+
+function reloadAfterDelete(redirect) {
+  const next = redirect || `${window.location.pathname}${window.location.search}`;
+  if (window.MiNavigation && typeof window.MiNavigation.navigate === "function") {
+    if (redirect) history.replaceState({ miSoftNavigation: true }, "", next);
+    window.MiNavigation.navigate(next, { push: false });
+    return;
+  }
+  window.location.assign(next);
+}
+
+function syncDeleteProjectConfirmLabel() {
+  const btn = document.getElementById("confirm-delete-project-btn");
+  const selected = document.querySelector('#delete-project-modal input[name="delete-project-meetings"]:checked');
+  if (!btn) return;
+  btn.textContent = selected && selected.value === "delete" ? "Delete project and meetings" : "Delete project";
+}
+
+function openDeleteMeetingModal(button) {
+  pendingDelete = {
+    kind: "meeting",
+    id: button.getAttribute("data-meeting-id") || "",
+    name: button.getAttribute("data-meeting-name") || "this meeting",
+    redirect: button.getAttribute("data-redirect") || "",
+  };
+  const nameEl = document.getElementById("delete-meeting-name");
+  if (nameEl) nameEl.textContent = pendingDelete.name;
+  showModal("delete-meeting-modal");
+}
+
+function openDeleteProjectModal(button) {
+  const count = Number(button.getAttribute("data-meeting-count") || "0") || 0;
+  pendingDelete = {
+    kind: "project",
+    id: button.getAttribute("data-project-id") || "",
+    name: button.getAttribute("data-project-name") || "this project",
+    meetingCount: count,
+    redirect: button.getAttribute("data-redirect") || "",
+  };
+  const nameEl = document.getElementById("delete-project-name");
+  const choices = document.getElementById("delete-project-choices");
+  const hint = document.getElementById("delete-project-count-hint");
+  const keep = document.querySelector('#delete-project-modal input[name="delete-project-meetings"][value="keep"]');
+  if (nameEl) nameEl.textContent = pendingDelete.name;
+  if (keep) keep.checked = true;
+  if (choices) {
+    choices.hidden = count < 1;
+  }
+  if (hint) {
+    hint.textContent =
+      count === 1
+        ? "This project has 1 meeting."
+        : `This project has ${count} meetings.`;
+  }
+  syncDeleteProjectConfirmLabel();
+  showModal("delete-project-modal");
+}
+
+async function confirmDeleteMeeting(button) {
+  if (!pendingDelete || pendingDelete.kind !== "meeting" || !pendingDelete.id) return;
+  button.disabled = true;
+  const original = button.textContent;
+  button.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Deleting…';
+  try {
+    const result = await deleteJson(`/api/meetings/${pendingDelete.id}`);
+    const redirect = pendingDelete.redirect;
+    hideModal("delete-meeting-modal");
+    showToast(result.msg || "Meeting deleted.");
+    pendingDelete = null;
+    reloadAfterDelete(redirect);
+  } catch (err) {
+    showToast(err.message || "Unable to delete the meeting. Please try again.");
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function confirmDeleteProject(button) {
+  if (!pendingDelete || pendingDelete.kind !== "project" || !pendingDelete.id) return;
+  const selected = document.querySelector('#delete-project-modal input[name="delete-project-meetings"]:checked');
+  const deleteMeetings = pendingDelete.meetingCount > 0 && selected && selected.value === "delete";
+  button.disabled = true;
+  const original = button.textContent;
+  button.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Deleting…';
+  try {
+    const qs = deleteMeetings ? "?delete_meetings=true" : "?delete_meetings=false";
+    const result = await deleteJson(`/api/projects/${pendingDelete.id}${qs}`);
+    const redirect = pendingDelete.redirect;
+    hideModal("delete-project-modal");
+    showToast(result.msg || "Project deleted.");
+    pendingDelete = null;
+    reloadAfterDelete(redirect);
+  } catch (err) {
+    showToast(err.message || "Unable to delete the project. Please try again.");
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+if (!window.__miDeleteListeners) {
+  window.__miDeleteListeners = true;
+  document.addEventListener("click", (event) => {
+    const meetingBtn = event.target.closest("[data-delete-meeting]");
+    if (meetingBtn) {
+      event.preventDefault();
+      openDeleteMeetingModal(meetingBtn);
+      return;
+    }
+    const projectBtn = event.target.closest("[data-delete-project]");
+    if (projectBtn) {
+      event.preventDefault();
+      openDeleteProjectModal(projectBtn);
+    }
+  });
+  document.addEventListener("change", (event) => {
+    if (event.target && event.target.name === "delete-project-meetings") {
+      syncDeleteProjectConfirmLabel();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("#confirm-delete-meeting-btn")) {
+      confirmDeleteMeeting(event.target.closest("#confirm-delete-meeting-btn"));
+    }
+    if (event.target.closest("#confirm-delete-project-btn")) {
+      confirmDeleteProject(event.target.closest("#confirm-delete-project-btn"));
+    }
+  });
+}
+
 let openMiSelect = null;
 
 function closeMiSelect(widget) {

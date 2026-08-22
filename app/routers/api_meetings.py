@@ -11,7 +11,7 @@ from app.api_response import api_error, api_success
 from app.auth.config import get_settings
 from app.db.meetings import PLATFORM_LABELS
 from app.queue.rabbitmq import publish_recording_ready
-from app.services.meeting_service import MeetingStartError, start_meeting, upload_recording
+from app.services.meeting_service import MeetingStartError, delete_user_meeting, start_meeting, upload_recording
 from app.services.recording_storage import resolve_recording_path
 
 logger = logging.getLogger(__name__)
@@ -222,4 +222,26 @@ async def api_share_meeting(request: Request, meeting_id: str):
     return api_success(
         {"url": url, "token": token},
         msg="Share link ready. Anyone who signs in with this link gets their own copy.",
+    )
+
+
+@router.delete("/{meeting_id}")
+async def api_delete_meeting(request: Request, meeting_id: str):
+    """Permanently delete a meeting the signed-in user owns."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return api_error("Please sign in to continue.", status_code=401)
+
+    try:
+        meeting = await delete_user_meeting(user_id=str(user["_id"]), meeting_id=meeting_id)
+    except MeetingStartError as exc:
+        status = 404 if "not found" in exc.public_message.lower() else 400
+        return api_error(exc.public_message, status_code=status)
+    except Exception:
+        logger.exception("Failed to delete meeting=%s", meeting_id)
+        return api_error("Unable to delete the meeting. Please try again.", status_code=500)
+
+    return api_success(
+        meeting,
+        msg=f'Meeting “{meeting["title"]}” was deleted.',
     )

@@ -64,6 +64,16 @@
         >
           <i class="bi bi-share me-1"></i> Share
         </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-danger-soft"
+          data-delete-meeting
+          data-meeting-id="{{ meeting.id }}"
+          data-meeting-name="{{ meeting.name }}"
+          data-redirect="/meetings"
+        >
+          <i class="bi bi-trash me-1"></i> Delete
+        </button>
         {% if meeting.recording_available %}
         <button
           type="button"

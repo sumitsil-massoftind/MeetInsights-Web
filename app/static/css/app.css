@@ -393,6 +393,70 @@ a:hover {
   color: var(--md-on-primary-container);
 }
 
+.btn-danger-soft {
+  background: color-mix(in srgb, var(--mi-danger) 10%, white);
+  color: var(--mi-danger);
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.btn-danger-soft:hover,
+.btn-danger-soft:focus-visible {
+  background: color-mix(in srgb, var(--mi-danger) 18%, white);
+  color: var(--mi-danger);
+}
+
+.btn-danger {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.delete-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  margin: 0 0 0.6rem;
+  border: 1px solid var(--mi-border);
+  border-radius: 16px;
+  cursor: pointer;
+  background: var(--md-surface-container-lowest);
+}
+
+.delete-choice:last-child {
+  margin-bottom: 0;
+}
+
+.delete-choice input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.delete-choice-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.delete-choice-copy {
+  display: block;
+  color: var(--mi-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.15rem;
+}
+
+.delete-choice:has(input:checked) {
+  border-color: var(--mi-primary);
+  background: color-mix(in srgb, var(--md-primary-container) 55%, white);
+}
+
+.delete-choice-danger:has(input:checked) {
+  border-color: var(--mi-danger);
+  background: color-mix(in srgb, var(--mi-danger) 8%, white);
+}
+
 /* Search */
 .meetings-search {
   position: relative;

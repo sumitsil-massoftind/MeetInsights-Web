@@ -703,3 +703,54 @@ async def claim_shared_meeting(
         raise ValueError("share_failed")
     return serialized, "created"
 
+
+async def pop_meeting_for_user(
+    *,
+    meeting_id: str | ObjectId,
+    user_id: str | ObjectId,
+) -> dict[str, Any] | None:
+    """Delete a meeting owned by the user and return the raw document."""
+    mid = _to_object_id(meeting_id)
+    uid = _to_object_id(user_id)
+    if not mid or not uid:
+        return None
+    return await get_db().meetings.find_one_and_delete({"_id": mid, "user_id": uid})
+
+
+async def count_recording_refs(recording_filename: str | None, *, exclude_id: ObjectId | None = None) -> int:
+    filename = (recording_filename or "").strip()
+    if not filename:
+        return 0
+    query: dict[str, Any] = {"recording_filename": filename}
+    if exclude_id is not None:
+        query["_id"] = {"$ne": exclude_id}
+    return int(await get_db().meetings.count_documents(query))
+
+
+async def list_project_meeting_docs(
+    *,
+    user_id: str | ObjectId,
+    project_id: str | ObjectId,
+) -> list[dict[str, Any]]:
+    uid = _to_object_id(user_id)
+    poid = _to_object_id(project_id)
+    if not uid or not poid:
+        return []
+    return await get_db().meetings.find({"user_id": uid, "project_id": poid}).to_list(length=5000)
+
+
+async def unassign_project_meetings(
+    *,
+    user_id: str | ObjectId,
+    project_id: str | ObjectId,
+) -> int:
+    uid = _to_object_id(user_id)
+    poid = _to_object_id(project_id)
+    if not uid or not poid:
+        return 0
+    result = await get_db().meetings.update_many(
+        {"user_id": uid, "project_id": poid},
+        {"$set": {"project_id": None, "updated_at": _utcnow()}},
+    )
+    return int(result.modified_count)
+

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', path='css/app.css') }}?v=dash-1" rel="stylesheet">
+  <link href="{{ url_for('static', path='css/app.css') }}?v=delete-1" rel="stylesheet">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -29,11 +29,68 @@
 
   <div id="toast-host" class="toast-host"></div>
 
+  <div class="modal fade" id="delete-meeting-modal" tabindex="-1" aria-labelledby="delete-meeting-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content mi-modal">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="delete-meeting-title">Delete meeting</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">
+            Delete <strong id="delete-meeting-name">this meeting</strong>? This cannot be undone.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-meeting-btn">Delete meeting</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="delete-project-modal" tabindex="-1" aria-labelledby="delete-project-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content mi-modal">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="delete-project-title">Delete project</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">
+            Delete <strong id="delete-project-name">this project</strong>? This cannot be undone.
+          </p>
+          <div id="delete-project-choices" hidden>
+            <p class="small text-muted-mi mb-2" id="delete-project-count-hint"></p>
+            <label class="delete-choice">
+              <input type="radio" name="delete-project-meetings" value="keep" checked>
+              <span>
+                <span class="delete-choice-title">Keep the meetings</span>
+                <span class="delete-choice-copy">They stay in your library, unassigned to a project.</span>
+              </span>
+            </label>
+            <label class="delete-choice delete-choice-danger">
+              <input type="radio" name="delete-project-meetings" value="delete">
+              <span>
+                <span class="delete-choice-title">Also delete the meetings</span>
+                <span class="delete-choice-copy">Meetings in this project are removed from your library.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-project-btn">Delete project</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ url_for('static', path='js/vendor/socket.io.min.js') }}"></script>
-  <script src="{{ url_for('static', path='js/auth.js') }}"></script>
+  <script src="{{ url_for('static', path='js/auth.js') }}?v=delete-1"></script>
   <script src="{{ url_for('static', path='js/navigation.js') }}?v=dash-1"></script>
-  <script src="{{ url_for('static', path='js/app.js') }}?v=select-2"></script>
+  <script src="{{ url_for('static', path='js/app.js') }}?v=delete-1"></script>
   <script src="{{ url_for('static', path='js/summary-socket.js') }}"></script>
   <script src="{{ url_for('static', path='js/chat.js') }}?v=chat-md-3"></script>
   <script src="{{ url_for('static', path='js/bots.js') }}"></script>

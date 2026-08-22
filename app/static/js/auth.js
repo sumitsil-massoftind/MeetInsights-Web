@@ -128,6 +128,18 @@
     return result;
   }
 
+  async function deleteJson(url) {
+    const response = await apiFetch(url, { method: "DELETE" });
+    const result = await readEnvelope(response);
+    if (!result.ok) {
+      const error = new Error(result.msg);
+      error.status = response.status;
+      error.data = result.data;
+      throw error;
+    }
+    return result;
+  }
+
   async function postForm(url, body) {
     const response = await apiFetch(url, { method: "POST", body });
     const result = await readEnvelope(response);
@@ -147,6 +159,7 @@
 
   global.MiAuth = {
     apiFetch,
+    deleteJson,
     getAccessToken,
     postForm,
     postJson,

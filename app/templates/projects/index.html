@@ -48,9 +48,23 @@
         <td class="text-muted-mi">{{ project.meeting_count }}</td>
         <td class="text-muted-mi">{{ project.last_updated_dt.strftime("%b %d, %Y") }}</td>
         <td class="text-end">
-          <a href="/projects/{{ project.id }}" class="btn btn-sm btn-soft" title="Open">
-            <i class="bi bi-arrow-up-right"></i>
-          </a>
+          <div class="d-inline-flex gap-1">
+            <a href="/projects/{{ project.id }}" class="btn btn-sm btn-soft" title="Open">
+              <i class="bi bi-arrow-up-right"></i>
+            </a>
+            <button
+              type="button"
+              class="btn btn-sm btn-danger-soft"
+              data-delete-project
+              data-project-id="{{ project.id }}"
+              data-project-name="{{ project.name }}"
+              data-meeting-count="{{ project.meeting_count }}"
+              title="Delete project"
+              aria-label="Delete {{ project.name }}"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
         </td>
       </tr>
       {% else %}

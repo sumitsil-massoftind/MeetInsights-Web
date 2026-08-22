@@ -155,3 +155,30 @@ async def touch_project(project_id: str | ObjectId) -> None:
         {"_id": oid},
         {"$set": {"updated_at": _utcnow()}},
     )
+
+
+async def count_project_meetings(
+    *,
+    user_id: str | ObjectId,
+    project_id: str | ObjectId,
+) -> int:
+    uid = _to_object_id(user_id)
+    poid = _to_object_id(project_id)
+    if not uid or not poid:
+        return 0
+    return int(
+        await get_db().meetings.count_documents({"user_id": uid, "project_id": poid})
+    )
+
+
+async def delete_project_for_user(
+    *,
+    project_id: str | ObjectId,
+    user_id: str | ObjectId,
+) -> dict[str, Any] | None:
+    oid = _to_object_id(project_id)
+    uid = _to_object_id(user_id)
+    if not oid or not uid:
+        return None
+    doc = await get_db().projects.find_one_and_delete({"_id": oid, "user_id": uid})
+    return serialize_project(doc) if doc else None
