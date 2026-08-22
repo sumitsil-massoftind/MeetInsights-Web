@@ -41,3 +41,9 @@ async def ensure_indexes() -> None:
     await db.meetings.create_index([("user_id", 1), ("status", 1)])
     await db.meetings.create_index([("user_id", 1), ("project_id", 1)])
     await db.meetings.create_index("status")
+    await db.meetings.create_index("share_token", unique=True, sparse=True)
+    await db.meetings.create_index(
+        [("user_id", 1), ("shared_from_meeting_id", 1)],
+        unique=True,
+        sparse=True,
+    )

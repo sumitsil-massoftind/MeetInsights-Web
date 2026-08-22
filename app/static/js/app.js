@@ -305,6 +305,8 @@ function initAppPage() {
   });
 
   document.querySelectorAll(".regenerate-transcript-btn").forEach((button) => {
+    if (button.dataset.miBound === "true") return;
+    button.dataset.miBound = "true";
     button.addEventListener("click", async () => {
       const url = button.getAttribute("data-api-url");
       if (!url || button.disabled) return;
@@ -326,6 +328,60 @@ function initAppPage() {
       }
     });
   });
+
+  document.querySelectorAll(".share-meeting-btn").forEach((button) => {
+    if (button.dataset.miBound === "true") return;
+    button.dataset.miBound = "true";
+    button.addEventListener("click", async () => {
+      const meetingId = button.getAttribute("data-meeting-id");
+      const modalEl = document.getElementById("share-meeting-modal");
+      const input = document.getElementById("share-meeting-link");
+      if (!meetingId || !modalEl || !input) return;
+
+      button.disabled = true;
+      try {
+        const result = await postJson(`/api/meetings/${meetingId}/share`, {});
+        const url = (result.data && result.data.url) || "";
+        input.value = url;
+        if (window.bootstrap) {
+          bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+      } catch (err) {
+        showToast(err.message || "Unable to create a share link. Please try again.");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  const copyShareBtn = document.getElementById("copy-share-link-btn");
+  if (copyShareBtn && copyShareBtn.dataset.miBound !== "true") {
+    copyShareBtn.dataset.miBound = "true";
+    copyShareBtn.addEventListener("click", async () => {
+      const input = document.getElementById("share-meeting-link");
+      const url = input && input.value;
+      if (!url) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          input.select();
+          document.execCommand("copy");
+        }
+        showToast("Share link copied.");
+      } catch {
+        showToast("Copy the link from the box.");
+      }
+    });
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("shared") === "1") {
+    showToast("This shared meeting was added to your workspace.");
+    params.delete("shared");
+    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash || ""}`;
+    window.history.replaceState({}, "", next);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initAppPage);

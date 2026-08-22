@@ -18,6 +18,8 @@
           {% endwith %}
           {% if meeting.source == "upload" %}
           <span class="badge-source" title="Uploaded recording"><i class="bi bi-cloud-arrow-up"></i> Uploaded</span>
+          {% elif meeting.is_shared %}
+          <span class="badge-source badge-source-shared" title="Shared copy"><i class="bi bi-share"></i> Shared</span>
           {% endif %}
         </div>
         <div class="meeting-meta">
@@ -55,6 +57,13 @@
         </div>
       </div>
       <div class="d-flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-light border share-meeting-btn"
+          data-meeting-id="{{ meeting.id }}"
+        >
+          <i class="bi bi-share me-1"></i> Share
+        </button>
         {% if meeting.recording_available %}
         <button
           type="button"
@@ -320,6 +329,28 @@
         </form>
       </div>
     </aside>
+  </div>
+</div>
+
+<div class="modal fade" id="share-meeting-modal" tabindex="-1" aria-labelledby="share-meeting-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content mi-modal">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="share-meeting-title">Share this meeting</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted-mi mb-3">
+          Anyone who opens this link and signs in gets their own copy.
+          If they regenerate the summary or transcript, it only changes their copy.
+        </p>
+        <label class="form-label small mb-1" for="share-meeting-link">Shareable link</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="share-meeting-link" readonly>
+          <button type="button" class="btn btn-primary" id="copy-share-link-btn">Copy</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+import secrets
 from typing import Any
 
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo.errors import DuplicateKeyError
 
 from app.db.mongodb import get_db
 
@@ -15,6 +17,7 @@ ALLOWED_PLATFORMS = frozenset({"google_meet", "zoom", "teams"})
 
 SOURCE_BOT = "bot"
 SOURCE_UPLOAD = "upload"
+SOURCE_SHARED = "shared"
 
 PLATFORM_LABELS = {
     "google_meet": "Google Meet",
@@ -161,6 +164,10 @@ def serialize_meeting(
         "title": title,
         "name": title,
         "source": source,
+        "is_shared": source == SOURCE_SHARED,
+        "shared_from_meeting_id": str(doc["shared_from_meeting_id"])
+        if doc.get("shared_from_meeting_id")
+        else None,
         "recording_filename": doc.get("recording_filename"),
         "original_filename": doc.get("original_filename"),
         "file_size_bytes": doc.get("file_size_bytes"),
@@ -505,3 +512,159 @@ async def meeting_stats_for_user(user_id: str | ObjectId) -> dict[str, int]:
         "failed": by_status.get(STATUS_FAILED, 0)
         + by_status.get(STATUS_RECORDING_FAILED, 0),
     }
+
+
+SHARE_COPY_FIELDS = (
+    "platform",
+    "meeting_url",
+    "title",
+    "status",
+    "storage",
+    "recording_filename",
+    "recording_path",
+    "original_filename",
+    "file_size_bytes",
+    "language",
+    "duration_minutes",
+    "transcript",
+    "transcript_preview",
+    "transcript_segments",
+    "speakers",
+    "transcription_provider",
+    "summary",
+    "summary_meeting_objective",
+    "summary_key_points",
+    "summary_discussion",
+    "summary_requirements",
+    "summary_decisions",
+    "summary_action_items",
+    "summary_open_questions",
+    "summary_outcome",
+    "summary_provider",
+    "summarized_at",
+    "processed_at",
+)
+
+
+def _is_share_token(token: str) -> bool:
+    value = (token or "").strip()
+    if len(value) < 8 or len(value) > 64:
+        return False
+    return all(ch.isalnum() or ch in "-_" for ch in value)
+
+
+async def ensure_share_token(
+    *,
+    meeting_id: str | ObjectId,
+    user_id: str | ObjectId,
+) -> str:
+    """Return a stable share token for a meeting the user owns."""
+
+    mid = _to_object_id(meeting_id)
+    uid = _to_object_id(user_id)
+    if not mid or not uid:
+        raise ValueError("not_found")
+
+    existing = await get_db().meetings.find_one({"_id": mid, "user_id": uid})
+    if not existing:
+        raise ValueError("not_found")
+
+    current = str(existing.get("share_token") or "").strip()
+    if current:
+        return current
+
+    for _ in range(6):
+        token = secrets.token_urlsafe(16)
+        result = await get_db().meetings.update_one(
+            {
+                "_id": mid,
+                "user_id": uid,
+                "$or": [
+                    {"share_token": {"$exists": False}},
+                    {"share_token": ""},
+                    {"share_token": None},
+                ],
+            },
+            {"$set": {"share_token": token, "updated_at": _utcnow()}},
+        )
+        if result.modified_count:
+            return token
+        refreshed = await get_db().meetings.find_one({"_id": mid, "user_id": uid})
+        current = str((refreshed or {}).get("share_token") or "").strip()
+        if current:
+            return current
+
+    raise ValueError("share_failed")
+
+
+async def claim_shared_meeting(
+    *,
+    token: str,
+    user_id: str | ObjectId,
+) -> tuple[dict[str, Any], str]:
+    """
+    Open a share link.
+
+    Returns (serialized meeting, reason) where reason is:
+      owner | existing | created
+    """
+
+    if not _is_share_token(token):
+        raise ValueError("invalid_share")
+
+    uid = _to_object_id(user_id)
+    if not uid:
+        raise ValueError("invalid_user")
+
+    source = await get_db().meetings.find_one({"share_token": token.strip()})
+    if not source:
+        raise ValueError("invalid_share")
+
+    if source.get("user_id") == uid:
+        serialized = serialize_meeting(source)
+        if not serialized:
+            raise ValueError("invalid_share")
+        return serialized, "owner"
+
+    existing = await get_db().meetings.find_one(
+        {"user_id": uid, "shared_from_meeting_id": source["_id"]}
+    )
+    if existing:
+        serialized = serialize_meeting(existing)
+        if not serialized:
+            raise ValueError("invalid_share")
+        return serialized, "existing"
+
+    now = _utcnow()
+    copy: dict[str, Any] = {
+        field: source[field]
+        for field in SHARE_COPY_FIELDS
+        if field in source
+    }
+    copy.update(
+        {
+            "user_id": uid,
+            "source": SOURCE_SHARED,
+            "project_id": None,
+            "shared_from_meeting_id": source["_id"],
+            "shared_by_user_id": source.get("user_id"),
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+    try:
+        result = await get_db().meetings.insert_one(copy)
+    except DuplicateKeyError:
+        existing = await get_db().meetings.find_one(
+            {"user_id": uid, "shared_from_meeting_id": source["_id"]}
+        )
+        serialized = serialize_meeting(existing)
+        if not serialized:
+            raise ValueError("share_failed")
+        return serialized, "existing"
+    created = await get_db().meetings.find_one({"_id": result.inserted_id})
+    serialized = serialize_meeting(created)
+    if not serialized:
+        raise ValueError("share_failed")
+    return serialized, "created"
+

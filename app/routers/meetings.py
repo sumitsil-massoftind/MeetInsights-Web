@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app.auth.config import get_settings
@@ -58,6 +58,30 @@ async def meetings_list(request: Request, page: int = 1, status: str = ""):
             "max_upload_bytes": get_settings().max_upload_bytes,
         },
     )
+
+
+@router.get("/meetings/shared/{token}")
+async def claim_shared_meeting(request: Request, token: str):
+    """Copy the shared meeting into this user's workspace, then open it."""
+    user = request.state.user
+    try:
+        meeting, reason = await meetings_repo.claim_shared_meeting(
+            token=token,
+            user_id=user["_id"],
+        )
+    except ValueError:
+        return templates.TemplateResponse(
+            "meeting/not_found.html",
+            {
+                "request": request,
+                "active_nav": "meetings",
+                "page_title": "Share link not found",
+            },
+            status_code=404,
+        )
+
+    suffix = "?shared=1" if reason == "created" else ""
+    return RedirectResponse(url=f"/meetings/{meeting['id']}{suffix}", status_code=303)
 
 
 @router.get("/meetings/{meeting_id}/recording")

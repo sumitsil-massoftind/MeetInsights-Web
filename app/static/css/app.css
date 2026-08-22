@@ -1680,16 +1680,7 @@ a:hover {
   display: none;
 }
 
-.badge-source {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--mi-info);
-  background: #e0f2fe;
-  border-radius: 999px;
-  padding: 0.15rem 0.5rem;
-  vertical-align: middle;
-  white-space: nowrap;
+.badge-source-shared {
+  color: #6d28d9;
+  background: #ede9fe;
 }

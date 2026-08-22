@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from app.api_response import api_error, api_success
 from app.auth.config import get_settings
 from app.auth.errors import public_auth_error
+from app.auth.next_url import safe_internal_next
 from app.auth.service import (
     AuthError,
     exchange_google_code,
@@ -30,6 +31,23 @@ router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 OAUTH_STATE_COOKIE = "mi_oauth_state"
+AUTH_NEXT_COOKIE = "mi_auth_next"
+
+
+def _set_next_cookie(response: RedirectResponse, next_url: str | None) -> None:
+    settings = get_settings()
+    if next_url:
+        response.set_cookie(
+            AUTH_NEXT_COOKIE,
+            next_url,
+            max_age=600,
+            httponly=True,
+            secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite,
+            path="/",
+        )
+        return
+    response.delete_cookie(AUTH_NEXT_COOKIE, path="/")
 
 
 def _login_error_redirect(code: str) -> RedirectResponse:
@@ -37,8 +55,9 @@ def _login_error_redirect(code: str) -> RedirectResponse:
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login(request: Request, error: str = ""):
+async def login(request: Request, error: str = "", next: str = ""):
     settings = get_settings()
+    next_url = safe_internal_next(next) or ""
     return templates.TemplateResponse(
         "auth/login.html",
         {
@@ -47,12 +66,13 @@ async def login(request: Request, error: str = ""):
             # Never render raw query strings — only mapped safe copy
             "error": public_auth_error(error),
             "google_configured": settings.google_configured,
+            "next": next_url,
         },
     )
 
 
 @router.get("/auth/google")
-async def auth_google_start():
+async def auth_google_start(request: Request, next: str = ""):
     settings = get_settings()
     if not settings.google_configured:
         logger.error("Google OAuth credentials are missing; refusing sign-in start")
@@ -69,6 +89,7 @@ async def auth_google_start():
         samesite=settings.cookie_samesite,
         path="/",
     )
+    _set_next_cookie(response, safe_internal_next(next) or safe_internal_next(request.cookies.get(AUTH_NEXT_COOKIE)))
     return response
 
 
@@ -97,9 +118,11 @@ async def auth_google_callback(
 
     try:
         profile = await exchange_google_code(code)
-        response = RedirectResponse(url="/dashboard", status_code=303)
+        next_url = safe_internal_next(request.cookies.get(AUTH_NEXT_COOKIE)) or "/dashboard"
+        response = RedirectResponse(url=next_url, status_code=303)
         await login_with_google_profile(profile, response)
         response.delete_cookie(OAUTH_STATE_COOKIE, path="/")
+        response.delete_cookie(AUTH_NEXT_COOKIE, path="/")
         return response
     except AuthError as exc:
         logger.warning("AuthError during Google login: %s", exc.message)

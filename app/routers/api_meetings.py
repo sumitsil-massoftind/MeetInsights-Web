@@ -8,6 +8,7 @@ from fastapi import APIRouter, File, Form, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from app.api_response import api_error, api_success
+from app.auth.config import get_settings
 from app.db.meetings import PLATFORM_LABELS
 from app.queue.rabbitmq import publish_recording_ready
 from app.services.meeting_service import MeetingStartError, start_meeting, upload_recording
@@ -194,4 +195,31 @@ async def api_assign_meeting_project(
             "project_name": project_name if meeting.get("project_id") else None,
         },
         msg=msg,
+    )
+
+
+@router.post("/{meeting_id}/share")
+async def api_share_meeting(request: Request, meeting_id: str):
+    """Create or return a copy-on-open share link for a meeting the user owns."""
+    from app.db import meetings as meetings_repo
+
+    user = getattr(request.state, "user", None)
+    if not user:
+        return api_error("Please sign in to continue.", status_code=401)
+
+    try:
+        token = await meetings_repo.ensure_share_token(
+            meeting_id=meeting_id,
+            user_id=user["_id"],
+        )
+    except ValueError as exc:
+        if str(exc) == "not_found":
+            return api_error("Meeting not found.", status_code=404)
+        return api_error("Unable to create a share link. Please try again.", status_code=400)
+
+    base = get_settings().app_base_url.rstrip("/")
+    url = f"{base}/meetings/shared/{token}"
+    return api_success(
+        {"url": url, "token": token},
+        msg="Share link ready. Anyone who signs in with this link gets their own copy.",
     )

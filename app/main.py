@@ -6,6 +6,8 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from urllib.parse import quote
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
@@ -14,6 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api_response import api_error
 from app.auth.config import get_settings
+from app.auth.next_url import safe_internal_next
 from app.auth.service import (
     extract_bearer_token,
     reissue_access_cookie,
@@ -159,7 +162,8 @@ async def auth_middleware(request: Request, call_next):
         if path.startswith("/login"):
             user = await resolve_user_from_request(request)
             if user:
-                return RedirectResponse(url="/dashboard", status_code=302)
+                nxt = safe_internal_next(request.query_params.get("next"))
+                return RedirectResponse(url=nxt or "/dashboard", status_code=302)
         return await call_next(request)
 
     if path.startswith("/api/"):
@@ -174,7 +178,14 @@ async def auth_middleware(request: Request, call_next):
 
     user = await resolve_user_from_request(request)
     if not user:
-        return RedirectResponse(url="/login", status_code=302)
+        nxt = path
+        if request.url.query:
+            nxt = f"{path}?{request.url.query}"
+        login_url = "/login"
+        safe = safe_internal_next(nxt)
+        if safe:
+            login_url = f"/login?next={quote(safe, safe='')}"
+        return RedirectResponse(url=login_url, status_code=302)
 
     reissue = user.pop("_reissue_access", False)
     request.state.user = user
