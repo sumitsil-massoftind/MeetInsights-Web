@@ -847,27 +847,46 @@ a:hover {
 }
 
 .meeting-meta-project {
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  padding: 0.2rem 0.25rem 0.2rem 0.7rem;
+  border-radius: 14px;
+  align-items: center;
+  max-width: 100%;
 }
 
 .meeting-project-picker-wrap {
-  min-width: 10.5rem;
+  min-width: 8.5rem;
   max-width: 16rem;
 }
 
 .meeting-project-picker {
-  min-width: 9.5rem;
+  min-width: 8.5rem;
   max-width: 14rem;
 }
 
-.mi-table .meeting-project-picker {
+.mi-table .meeting-project-picker,
+.mi-table .mi-select {
   min-width: 9rem;
-  max-width: 12rem;
+  max-width: 14rem;
 }
 
 .meeting-project-link {
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container) !important;
+  font-weight: 650;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.meeting-project-link:hover {
+  color: var(--md-primary) !important;
+  background: color-mix(in srgb, var(--md-primary-container) 70%, white);
 }
 
 .meeting-layout {
@@ -1847,15 +1866,39 @@ a:hover {
 }
 
 .mi-menu {
+  --bs-dropdown-bg: var(--md-surface-container-lowest);
+  --bs-dropdown-border-color: var(--mi-border);
+  --bs-dropdown-border-radius: 16px;
+  --bs-dropdown-link-color: var(--mi-text);
+  --bs-dropdown-link-hover-bg: var(--md-surface-container);
+  --bs-dropdown-link-hover-color: var(--mi-text);
+  --bs-dropdown-link-active-bg: var(--md-primary-container);
+  --bs-dropdown-link-active-color: var(--md-on-primary-container);
+  --bs-dropdown-padding-y: 0.4rem;
+  --bs-dropdown-spacer: 0.5rem;
   border: 1px solid var(--mi-border);
   border-radius: 16px;
   box-shadow: var(--mi-shadow-lg);
   padding: 0.4rem;
+  min-width: 12rem;
 }
 
 .mi-menu .dropdown-item {
   border-radius: 10px;
   font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.mi-menu .dropdown-item:active,
+.mi-menu .dropdown-item:focus,
+.mi-menu .dropdown-item.active {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+.mi-menu .dropdown-divider {
+  margin: 0.35rem 0.4rem;
+  border-color: var(--mi-border);
 }
 
 .workspace-card {
@@ -2158,4 +2201,160 @@ a:hover {
 .chat-panel {
   border: 0;
   box-shadow: var(--mi-shadow-lg);
+}
+
+select.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234f46e5' viewBox='0 0 16 16'%3E%3Cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 0.9rem;
+  padding-right: 2.25rem;
+}
+
+.mi-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.mi-select > select.form-select {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mi-select-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  background: var(--md-surface-container-lowest);
+  color: var(--mi-text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.mi-select-sm .mi-select-toggle {
+  min-height: 34px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.8125rem;
+  border-radius: 10px;
+}
+
+.mi-select-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mi-select-toggle i {
+  color: var(--md-primary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.mi-select-toggle:hover {
+  border-color: color-mix(in srgb, var(--md-primary) 40%, var(--md-outline-variant));
+  background: var(--md-surface-container-low);
+}
+
+.mi-select-toggle:focus-visible {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.16);
+}
+
+.mi-select.is-open .mi-select-toggle {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.16);
+}
+
+.mi-select.is-open .mi-select-toggle i {
+  transform: rotate(180deg);
+}
+
+.mi-select.is-disabled .mi-select-toggle {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mi-select-menu {
+  z-index: 1080;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--mi-border);
+  border-radius: 16px;
+  box-shadow: var(--mi-shadow-lg);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.mi-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  color: var(--mi-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.mi-select-option:hover {
+  background: var(--md-surface-container);
+}
+
+.mi-select-option.is-selected {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-weight: 650;
+}
+
+.mi-select-option.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mi-select-option i {
+  color: var(--md-primary);
+  font-size: 1rem;
+}
+
+.meeting-meta-project .mi-select-toggle {
+  border: 0;
+  background: transparent;
+  min-height: 32px;
+  padding: 0.2rem 0.45rem;
+  box-shadow: none;
+}
+
+.meeting-meta-project .mi-select-toggle:hover,
+.meeting-meta-project .mi-select.is-open .mi-select-toggle {
+  background: var(--md-surface-container-low);
+  box-shadow: none;
 }

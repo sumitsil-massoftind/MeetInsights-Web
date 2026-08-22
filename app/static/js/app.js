@@ -32,7 +32,178 @@ async function postJson(url, body) {
   return window.MiAuth.postJson(url, body);
 }
 
+let openMiSelect = null;
+
+function closeMiSelect(widget) {
+  const target = widget || openMiSelect;
+  if (!target) return;
+  target.classList.remove("is-open");
+  const toggle = target.querySelector(".mi-select-toggle");
+  const menu = target.querySelector(".mi-select-menu");
+  if (toggle) toggle.setAttribute("aria-expanded", "false");
+  if (menu) menu.hidden = true;
+  if (openMiSelect === target) openMiSelect = null;
+}
+
+function closeAllMiSelects() {
+  closeMiSelect();
+}
+
+function enhanceSelect(select) {
+  if (!select || select.dataset.miSelectReady === "true") return;
+  select.dataset.miSelectReady = "true";
+
+  const widget = document.createElement("div");
+  widget.className = "mi-select";
+  if (select.classList.contains("form-select-sm")) widget.classList.add("mi-select-sm");
+  if (select.classList.contains("meeting-project-picker")) widget.classList.add("mi-select-inline");
+
+  select.parentNode.insertBefore(widget, select);
+  widget.appendChild(select);
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "mi-select-toggle";
+  toggle.setAttribute("aria-haspopup", "listbox");
+  toggle.setAttribute("aria-expanded", "false");
+  const ariaLabel = select.getAttribute("aria-label");
+  if (ariaLabel) toggle.setAttribute("aria-label", ariaLabel);
+  toggle.innerHTML = `<span class="mi-select-label"></span><i class="bi bi-chevron-down" aria-hidden="true"></i>`;
+
+  const menu = document.createElement("ul");
+  menu.className = "mi-select-menu";
+  menu.setAttribute("role", "listbox");
+  menu.hidden = true;
+
+  widget.appendChild(toggle);
+  widget.appendChild(menu);
+
+  const labelEl = toggle.querySelector(".mi-select-label");
+
+  function selectedText() {
+    const option = select.options[select.selectedIndex];
+    return option ? option.text : "";
+  }
+
+  function renderOptions() {
+    menu.innerHTML = "";
+    Array.from(select.options).forEach((option, index) => {
+      const item = document.createElement("li");
+      item.className = "mi-select-option";
+      item.setAttribute("role", "option");
+      item.dataset.value = option.value;
+      item.dataset.index = String(index);
+      if (option.disabled) item.classList.add("is-disabled");
+      if (option.selected) item.classList.add("is-selected");
+      item.innerHTML = `<span>${escapeHtml(option.text)}</span>${option.selected ? '<i class="bi bi-check2" aria-hidden="true"></i>' : ""}`;
+      menu.appendChild(item);
+    });
+    labelEl.textContent = selectedText();
+    toggle.disabled = select.disabled;
+    widget.classList.toggle("is-disabled", select.disabled);
+  }
+
+  function positionMenu() {
+    const rect = toggle.getBoundingClientRect();
+    const menuHeight = Math.min(menu.scrollHeight || 240, 280);
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const openUp = spaceBelow < menuHeight && rect.top > spaceBelow;
+    menu.style.position = "fixed";
+    menu.style.left = `${Math.max(8, rect.left)}px`;
+    menu.style.width = `${Math.max(rect.width, 168)}px`;
+    menu.style.right = "auto";
+    if (openUp) {
+      menu.style.top = "auto";
+      menu.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+    } else {
+      menu.style.top = `${rect.bottom + 6}px`;
+      menu.style.bottom = "auto";
+    }
+  }
+
+  function openMenu() {
+    if (select.disabled) return;
+    closeAllMiSelects();
+    renderOptions();
+    menu.hidden = false;
+    widget.classList.add("is-open");
+    toggle.setAttribute("aria-expanded", "true");
+    positionMenu();
+    openMiSelect = widget;
+  }
+
+  function choose(value) {
+    if (select.value !== value) {
+      select.value = value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    renderOptions();
+    closeMiSelect(widget);
+    toggle.focus();
+  }
+
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (widget.classList.contains("is-open")) closeMiSelect(widget);
+    else openMenu();
+  });
+
+  menu.addEventListener("click", (event) => {
+    const item = event.target.closest(".mi-select-option");
+    if (!item || item.classList.contains("is-disabled")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    choose(item.dataset.value);
+  });
+
+  toggle.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (!widget.classList.contains("is-open")) openMenu();
+    } else if (event.key === "Escape") {
+      closeMiSelect(widget);
+    }
+  });
+
+  select.tabIndex = -1;
+  select.addEventListener("focus", () => toggle.focus());
+  select.addEventListener("change", renderOptions);
+  const form = select.closest("form");
+  if (form) {
+    form.addEventListener("reset", () => window.setTimeout(renderOptions, 0));
+  }
+  new MutationObserver(renderOptions).observe(select, {
+    attributes: true,
+    attributeFilter: ["disabled"],
+  });
+
+  renderOptions();
+}
+
+function initCustomSelects() {
+  document.querySelectorAll("select.form-select").forEach((select) => enhanceSelect(select));
+}
+
+if (!window.__miSelectListeners) {
+  window.__miSelectListeners = true;
+  document.addEventListener("click", (event) => {
+    if (!openMiSelect) return;
+    if (!openMiSelect.contains(event.target)) closeAllMiSelects();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeAllMiSelects();
+  });
+  window.addEventListener("resize", closeAllMiSelects);
+  document.addEventListener("scroll", (event) => {
+    if (openMiSelect && openMiSelect.querySelector(".mi-select-menu") === event.target) return;
+    closeAllMiSelects();
+  }, true);
+}
+
 function initAppPage() {
+  initCustomSelects();
+
   document.querySelectorAll(".meeting-source-switch").forEach((switchEl) => {
     switchEl.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
       btn.addEventListener("shown.bs.tab", () => {
@@ -257,6 +428,8 @@ function initAppPage() {
   });
 
   document.querySelectorAll(".meeting-project-picker").forEach((select) => {
+    if (select.dataset.miBound === "true") return;
+    select.dataset.miBound = "true";
     select.addEventListener("change", async () => {
       const meetingId = select.getAttribute("data-meeting-id");
       if (!meetingId) return;
