@@ -114,14 +114,52 @@ def _serialize_action_items(raw: Any) -> list[dict[str, str]]:
             task = str(value.get("task") or "").strip()
             owner = str(value.get("owner") or "").strip()
             deadline = str(value.get("deadline") or "").strip()
+            timestamp = str(value.get("timestamp") or "").strip()
         else:
             task = str(value or "").strip()
             owner = ""
             deadline = ""
+            timestamp = ""
         if not task:
             continue
-        items.append({"task": task, "owner": owner, "deadline": deadline})
+        items.append(
+            {"task": task, "owner": owner, "deadline": deadline, "timestamp": timestamp}
+        )
     return items
+
+
+def _serialize_summary_topics(doc: dict[str, Any]) -> list[dict[str, Any]]:
+    topics: list[dict[str, Any]] = []
+    for item in doc.get("summary_topics") or []:
+        if isinstance(item, dict):
+            title = str(item.get("topic") or "").strip()
+            details = [
+                str(detail).strip()
+                for detail in (item.get("details") or [])
+                if str(detail).strip()
+            ]
+            if title or details:
+                topics.append({"topic": title or "Topic", "details": details})
+        elif str(item).strip():
+            topics.append({"topic": str(item).strip(), "details": []})
+    if topics:
+        return topics
+    fallback: list[dict[str, Any]] = []
+    key_points = [
+        str(item).strip()
+        for item in (doc.get("summary_key_points") or [])
+        if str(item).strip()
+    ]
+    if key_points:
+        fallback.append({"topic": "Key points", "details": key_points})
+    discussion = [
+        str(item).strip()
+        for item in (doc.get("summary_discussion") or [])
+        if str(item).strip()
+    ]
+    if discussion:
+        fallback.append({"topic": "Discussion", "details": discussion})
+    return fallback
 
 
 def _is_no_audio_error(*, code: str = "", message: str = "") -> bool:
@@ -216,13 +254,18 @@ def serialize_meeting(
         "has_transcript": bool(segments or full_transcript),
         "has_summary": bool((doc.get("summary") or "").strip()),
         "summary": doc.get("summary") or summary_placeholder,
-        "summary_meeting_objective": doc.get("summary_meeting_objective") or "",
-        "summary_key_points": doc.get("summary_key_points") or [],
-        "summary_discussion": doc.get("summary_discussion") or [],
+        "summary_objective": (doc.get("summary_objective") or doc.get("summary_meeting_objective") or ""),
+        "summary_meeting_objective": (doc.get("summary_objective") or doc.get("summary_meeting_objective") or ""),
+        "summary_topics": _serialize_summary_topics(doc),
         "summary_requirements": doc.get("summary_requirements") or [],
         "summary_decisions": doc.get("summary_decisions") or [],
+        "summary_business_rules": doc.get("summary_business_rules") or [],
+        "summary_technical": doc.get("summary_technical") or [],
         "summary_action_items": _serialize_action_items(doc.get("summary_action_items")),
         "summary_open_questions": doc.get("summary_open_questions") or [],
+        "summary_risks": doc.get("summary_risks") or [],
+        "summary_contradictions": doc.get("summary_contradictions") or [],
+        "summary_timestamps": doc.get("summary_timestamps") or [],
         "summary_outcome": doc.get("summary_outcome") or "",
         "transcript_preview": preview or transcript_placeholder,
     }
@@ -623,13 +666,20 @@ SHARE_COPY_FIELDS = (
     "speakers",
     "transcription_provider",
     "summary",
+    "summary_objective",
     "summary_meeting_objective",
+    "summary_topics",
     "summary_key_points",
     "summary_discussion",
     "summary_requirements",
     "summary_decisions",
+    "summary_business_rules",
+    "summary_technical",
     "summary_action_items",
     "summary_open_questions",
+    "summary_risks",
+    "summary_contradictions",
+    "summary_timestamps",
     "summary_outcome",
     "summary_provider",
     "summarized_at",

@@ -1046,6 +1046,14 @@ a:hover {
   color: var(--mi-text-muted);
 }
 
+.meeting-summary-topic-title {
+  margin: 1rem 0 0.4rem;
+  font-family: "Manrope", "Roboto", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--mi-text);
+}
+
 .meeting-summary-list {
   margin: 0;
   padding-left: 1.15rem;

@@ -18,6 +18,22 @@
       .replace(/'/g, "&#39;");
   }
 
+  function renderTopics(topics) {
+    if (!topics || !topics.length) return "";
+    return topics
+      .map((topic) => {
+        const title = escapeHtml((topic && topic.topic) || "Topic");
+        const details = Array.isArray(topic && topic.details) ? topic.details : [];
+        const list = details.length
+          ? `<ul class="meeting-summary-list">${details
+              .map((item) => `<li>${escapeHtml(item)}</li>`)
+              .join("")}</ul>`
+          : "";
+        return `<h3 class="meeting-summary-topic-title">${title}</h3>${list}`;
+      })
+      .join("");
+  }
+
   function renderList(title, items) {
     if (!items || !items.length) return "";
     const lis = items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
@@ -30,7 +46,7 @@
       .map((item) => {
         if (item && typeof item === "object") {
           const task = escapeHtml(item.task || "");
-          const extras = [item.owner, item.deadline]
+          const extras = [item.owner, item.deadline, item.timestamp]
             .filter(Boolean)
             .map((part) => escapeHtml(part))
             .join(" · ");
@@ -69,14 +85,18 @@
     const overview = data.summary || "";
     body.innerHTML = [
       `<p class="meeting-summary-text">${escapeHtml(overview)}</p>`,
-      renderText("Meeting objective", data.summary_meeting_objective),
-      renderList("Key points", data.summary_key_points),
-      renderList("Discussion", data.summary_discussion),
+      renderText("Objective", data.summary_objective || data.summary_meeting_objective),
+      renderList("Key decisions", data.summary_decisions),
       renderList("Requirements", data.summary_requirements),
-      renderList("Decisions", data.summary_decisions),
+      renderList("Business rules & pricing", data.summary_business_rules),
+      renderList("Technical considerations", data.summary_technical),
+      renderTopics(data.summary_topics),
       renderActionItems(data.summary_action_items),
       renderList("Open questions", data.summary_open_questions),
-      renderText("Outcome", data.summary_outcome),
+      renderList("Risks and concerns", data.summary_risks),
+      renderList("Contradictions / ambiguities", data.summary_contradictions),
+      renderList("Important timestamps", data.summary_timestamps),
+      renderText("Final outcome", data.summary_outcome),
     ].join("");
     enableMeetingChat();
   }

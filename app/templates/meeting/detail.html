@@ -192,23 +192,15 @@
           <div class="meeting-summary-body">
           {% if meeting.has_summary %}
           <p class="meeting-summary-text">{{ meeting.summary }}</p>
-          {% if meeting.summary_meeting_objective %}
-          <h3 class="meeting-summary-subhead">Meeting objective</h3>
-          <p class="meeting-summary-text">{{ meeting.summary_meeting_objective }}</p>
+          {% if meeting.summary_objective %}
+          <h3 class="meeting-summary-subhead">Objective</h3>
+          <p class="meeting-summary-text">{{ meeting.summary_objective }}</p>
           {% endif %}
-          {% if meeting.summary_key_points %}
-          <h3 class="meeting-summary-subhead">Key points</h3>
+          {% if meeting.summary_decisions %}
+          <h3 class="meeting-summary-subhead">Key decisions</h3>
           <ul class="meeting-summary-list">
-            {% for point in meeting.summary_key_points %}
-            <li>{{ point }}</li>
-            {% endfor %}
-          </ul>
-          {% endif %}
-          {% if meeting.summary_discussion %}
-          <h3 class="meeting-summary-subhead">Discussion</h3>
-          <ul class="meeting-summary-list">
-            {% for item in meeting.summary_discussion %}
-            <li>{{ item }}</li>
+            {% for decision in meeting.summary_decisions %}
+            <li>{{ decision }}</li>
             {% endfor %}
           </ul>
           {% endif %}
@@ -220,24 +212,43 @@
             {% endfor %}
           </ul>
           {% endif %}
-          {% if meeting.summary_decisions %}
-          <h3 class="meeting-summary-subhead">Decisions</h3>
+          {% if meeting.summary_business_rules %}
+          <h3 class="meeting-summary-subhead">Business rules &amp; pricing</h3>
           <ul class="meeting-summary-list">
-            {% for decision in meeting.summary_decisions %}
-            <li>{{ decision }}</li>
+            {% for item in meeting.summary_business_rules %}
+            <li>{{ item }}</li>
             {% endfor %}
           </ul>
           {% endif %}
+          {% if meeting.summary_technical %}
+          <h3 class="meeting-summary-subhead">Technical considerations</h3>
+          <ul class="meeting-summary-list">
+            {% for item in meeting.summary_technical %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% for topic in meeting.summary_topics %}
+          <h3 class="meeting-summary-topic-title">{{ topic.topic }}</h3>
+          {% if topic.details %}
+          <ul class="meeting-summary-list">
+            {% for detail in topic.details %}
+            <li>{{ detail }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% endfor %}
           {% if meeting.summary_action_items %}
           <h3 class="meeting-summary-subhead">Action items</h3>
           <ul class="meeting-summary-list">
             {% for item in meeting.summary_action_items %}
             <li>
               {{ item.task }}
-              {% if item.owner or item.deadline %}
+              {% if item.owner or item.deadline or item.timestamp %}
               <span class="text-muted-mi">
                 {% if item.owner %} · {{ item.owner }}{% endif %}
                 {% if item.deadline %} · {{ item.deadline }}{% endif %}
+                {% if item.timestamp %} · {{ item.timestamp }}{% endif %}
               </span>
               {% endif %}
             </li>
@@ -252,8 +263,32 @@
             {% endfor %}
           </ul>
           {% endif %}
+          {% if meeting.summary_risks %}
+          <h3 class="meeting-summary-subhead">Risks and concerns</h3>
+          <ul class="meeting-summary-list">
+            {% for risk in meeting.summary_risks %}
+            <li>{{ risk }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if meeting.summary_contradictions %}
+          <h3 class="meeting-summary-subhead">Contradictions / ambiguities</h3>
+          <ul class="meeting-summary-list">
+            {% for item in meeting.summary_contradictions %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if meeting.summary_timestamps %}
+          <h3 class="meeting-summary-subhead">Important timestamps</h3>
+          <ul class="meeting-summary-list">
+            {% for item in meeting.summary_timestamps %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
           {% if meeting.summary_outcome %}
-          <h3 class="meeting-summary-subhead">Outcome</h3>
+          <h3 class="meeting-summary-subhead">Final outcome</h3>
           <p class="meeting-summary-text mb-0">{{ meeting.summary_outcome }}</p>
           {% endif %}
           {% else %}
