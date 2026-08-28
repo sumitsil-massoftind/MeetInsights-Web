@@ -63,6 +63,11 @@
     const panel = document.querySelector(".chat-panel[data-meeting-id]");
     if (!panel) return;
     panel.setAttribute("data-has-summary", "true");
+    const badge = panel.querySelector(".chat-panel-badge");
+    if (badge) {
+      badge.hidden = false;
+      badge.textContent = "Ready";
+    }
     const input = panel.querySelector('input[name="message"]');
     const sendBtn = panel.querySelector(".chat-send-btn");
     if (input) {

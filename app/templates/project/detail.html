@@ -157,11 +157,12 @@
       data-socket-url="{{ meetinsight_socket_url }}"
     >
       <div class="chat-panel-header">
-        <div class="d-flex align-items-center gap-2">
-          <span class="chat-panel-icon"><i class="bi bi-stars"></i></span>
-          <div>
-            <div class="fw-semibold">Ask about this project</div>
-            <div class="small text-muted-mi">Answers clear when you leave this page</div>
+        <div class="chat-panel-header-inner">
+          <span class="chat-panel-icon chat-panel-icon--glow"><i class="bi bi-stars"></i></span>
+          <div class="chat-panel-header-copy">
+            <span class="chat-panel-eyebrow">AI Assistant</span>
+            <div class="chat-panel-title">Ask about this project</div>
+            <p class="chat-panel-subtitle mb-0">Answers clear when you leave this page</p>
           </div>
         </div>
       </div>
@@ -169,8 +170,8 @@
         <div class="chat-empty">
           <span class="chat-empty-icon"><i class="bi bi-chat-dots"></i></span>
           <p class="chat-empty-title">Chat across meetings</p>
-          <p class="small text-muted-mi mb-3">
-            Select meetings with an AI summary. Answers use those summaries only and are not saved.
+          <p class="chat-empty-lead">
+            Select meetings with an AI summary, then ask questions across all of them.
           </p>
           <div class="chat-suggestions">
             <button type="button" class="chat-suggestion" data-chat-prompt="Summarize the selected meetings">
@@ -186,18 +187,14 @@
         </div>
       </div>
       <div class="chat-input-area">
-        <form
-          class="chat-form"
-          data-chat-kind="project"
-          novalidate
-        >
+        <form class="chat-form" data-chat-kind="project" novalidate>
           <input type="hidden" name="meeting_ids" id="selected-meeting-ids" value="">
           <div class="chat-input-row">
             <input
               type="text"
               name="message"
               id="project-chat-input"
-              class="form-control"
+              class="form-control chat-input"
               placeholder="Ask about selected meetings…"
               autocomplete="off"
               required
