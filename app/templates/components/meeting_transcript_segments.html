@@ -1,0 +1,23 @@
+{% for segment in meeting.transcript_segments %}
+<article
+  class="transcript-segment"
+  data-transcript-start="{{ segment.start }}"
+  data-transcript-end="{{ segment.end }}"
+  tabindex="0"
+  role="button"
+  aria-label="Jump to {{ segment.start }}"
+>
+  <div class="transcript-segment-meta">
+    <span class="transcript-speaker">{{ segment.speaker }}</span>
+    <button
+      type="button"
+      class="transcript-time transcript-seek-btn"
+      data-transcript-seek="{{ segment.start }}"
+      title="Jump to {{ segment.start }}"
+    >
+      {{ segment.start }} – {{ segment.end }}
+    </button>
+  </div>
+  <p class="transcript-segment-text mb-0">{{ segment.text }}</p>
+</article>
+{% endfor %}

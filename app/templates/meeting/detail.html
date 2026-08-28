@@ -114,57 +114,123 @@
   <div class="meeting-layout">
     <div class="meeting-main">
       {% if meeting.recording_available %}
-      <section class="mi-card recording-card">
-        <div class="recording-stage">
-          <div class="recording-frame">
-            <video
-              class="recording-player"
-              controls
-              preload="metadata"
-              src="/meetings/{{ meeting.id }}/recording"
-            >
-              Your browser does not support video playback.
-            </video>
-          </div>
-
-          <div class="recording-side">
-            <span class="recording-eyebrow">
-              <span class="recording-eyebrow-dot"></span> Recording
+      <section
+        class="mi-card recording-card{% if meeting.transcript_segments %} recording-card--synced{% endif %}"
+        {% if meeting.transcript_segments %}data-transcript-sync{% endif %}
+      >
+        {% if meeting.transcript_segments %}
+        <div class="recording-meta-bar">
+          <span class="recording-eyebrow">
+            <span class="recording-eyebrow-dot"></span> Recording
+          </span>
+          <span class="recording-meta-title">{{ meeting.name }}</span>
+          <div class="recording-facts">
+            <span class="recording-fact">
+              <i class="bi bi-clock"></i> {{ meeting.duration_label }}
             </span>
-            <h2 class="recording-title">{{ meeting.name }}</h2>
+            {% if meeting.recording_size_label %}
+            <span class="recording-fact">
+              <i class="bi bi-hdd"></i> {{ meeting.recording_size_label }}
+            </span>
+            {% endif %}
+            {% if meeting.language %}
+            <span class="recording-fact">
+              <i class="bi bi-translate"></i> {{ meeting.language }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="recording-meta-actions">
+            <button type="button" class="recording-btn recording-btn-compact" data-recording-fullscreen>
+              <i class="bi bi-arrows-fullscreen"></i> Full screen
+            </button>
+            <a
+              class="recording-btn recording-btn-compact"
+              href="/meetings/{{ meeting.id }}/recording?download=1"
+              download
+            >
+              <i class="bi bi-download"></i> Download
+            </a>
+          </div>
+        </div>
+        {% endif %}
 
-            <div class="recording-facts">
-              <span class="recording-fact">
-                <i class="bi bi-clock"></i> {{ meeting.duration_label }}
-              </span>
-              {% if meeting.recording_size_label %}
-              <span class="recording-fact">
-                <i class="bi bi-hdd"></i> {{ meeting.recording_size_label }}
-              </span>
-              {% endif %}
-              <span class="recording-fact">
-                <i class="bi bi-camera-video"></i> {{ meeting.platform_label or "Uploaded recording" }}
-              </span>
+        <div class="recording-stage{% if meeting.transcript_segments %} recording-stage--with-transcript{% endif %}">
+          <div class="recording-primary">
+            <div class="recording-frame">
+              <video
+                class="recording-player"
+                controls
+                preload="metadata"
+                src="/meetings/{{ meeting.id }}/recording"
+              >
+                Your browser does not support video playback.
+              </video>
             </div>
 
-            <p class="recording-file" title="{{ meeting.original_filename or meeting.recording_filename }}">
-              <i class="bi bi-file-earmark-play"></i>
-              <span>{{ meeting.original_filename or meeting.recording_filename }}</span>
-            </p>
+            {% if not meeting.transcript_segments %}
+            <div class="recording-side">
+              <span class="recording-eyebrow">
+                <span class="recording-eyebrow-dot"></span> Recording
+              </span>
+              <h2 class="recording-title">{{ meeting.name }}</h2>
 
-            <div class="recording-actions">
-              <button type="button" class="recording-btn" data-recording-fullscreen>
-                <i class="bi bi-arrows-fullscreen"></i> Full screen
-              </button>
-              <a
-                class="recording-btn"
-                href="/meetings/{{ meeting.id }}/recording?download=1"
-                download
-              >
-                <i class="bi bi-download"></i> Download
-              </a>
+              <div class="recording-facts">
+                <span class="recording-fact">
+                  <i class="bi bi-clock"></i> {{ meeting.duration_label }}
+                </span>
+                {% if meeting.recording_size_label %}
+                <span class="recording-fact">
+                  <i class="bi bi-hdd"></i> {{ meeting.recording_size_label }}
+                </span>
+                {% endif %}
+                <span class="recording-fact">
+                  <i class="bi bi-camera-video"></i> {{ meeting.platform_label or "Uploaded recording" }}
+                </span>
+              </div>
+
+              <p class="recording-file" title="{{ meeting.original_filename or meeting.recording_filename }}">
+                <i class="bi bi-file-earmark-play"></i>
+                <span>{{ meeting.original_filename or meeting.recording_filename }}</span>
+              </p>
+
+              <div class="recording-actions">
+                <button type="button" class="recording-btn" data-recording-fullscreen>
+                  <i class="bi bi-arrows-fullscreen"></i> Full screen
+                </button>
+                <a
+                  class="recording-btn"
+                  href="/meetings/{{ meeting.id }}/recording?download=1"
+                  download
+                >
+                  <i class="bi bi-download"></i> Download
+                </a>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if meeting.transcript_segments %}
+          <div class="recording-transcript-panel">
+            <div class="recording-transcript-head">
+              <div>
+                <h2 class="recording-transcript-title">
+                  <i class="bi bi-chat-left-text"></i> Transcript
+                </h2>
+                {% if meeting.language %}
+                <p class="recording-transcript-lang small mb-0">{{ meeting.language }}</p>
+                {% endif %}
+              </div>
+              <div class="recording-transcript-tools">
+                <span class="recording-sync-hint">
+                  <i class="bi bi-broadcast"></i> Synced with video
+                </span>
+              </div>
+            </div>
+            <div class="transcript-segments transcript-segments--sync" data-transcript-segments>
+              {% include "components/meeting_transcript_segments.html" %}
             </div>
           </div>
+          {% endif %}
         </div>
       </section>
       {% endif %}
@@ -179,15 +245,24 @@
             <h2 class="section-title mb-0">
               <i class="bi bi-stars"></i> AI Summary
             </h2>
-            {% if meeting.has_transcript %}
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-primary regenerate-summary-btn"
-              data-meeting-id="{{ meeting.id }}"
-            >
-              <i class="bi bi-arrow-repeat me-1"></i> Regenerate summary
-            </button>
-            {% endif %}
+            <div class="meeting-summary-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary copy-summary-btn"
+                {% if not meeting.has_summary %}hidden{% endif %}
+              >
+                <i class="bi bi-clipboard me-1"></i> Copy summary
+              </button>
+              {% if meeting.has_transcript %}
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary regenerate-summary-btn"
+                data-meeting-id="{{ meeting.id }}"
+              >
+                <i class="bi bi-arrow-repeat me-1"></i> Regenerate summary
+              </button>
+              {% endif %}
+            </div>
           </div>
           <div class="meeting-summary-body">
           {% if meeting.has_summary %}
@@ -298,6 +373,7 @@
         </div>
       </section>
 
+      {% if not meeting.recording_available or not meeting.transcript_segments %}
       <section class="mi-card meeting-transcript-card">
         <div class="mi-card-body d-flex flex-column h-100">
           <h2 class="section-title">
@@ -306,15 +382,7 @@
           </h2>
           {% if meeting.transcript_segments %}
           <div class="transcript-segments flex-grow-1">
-            {% for segment in meeting.transcript_segments %}
-            <article class="transcript-segment">
-              <div class="transcript-segment-meta">
-                <span class="transcript-speaker">{{ segment.speaker }}</span>
-                <span class="transcript-time">{{ segment.start }} – {{ segment.end }}</span>
-              </div>
-              <p class="transcript-segment-text mb-0">{{ segment.text }}</p>
-            </article>
-            {% endfor %}
+            {% include "components/meeting_transcript_segments.html" %}
           </div>
           {% elif meeting.transcript %}
           <div class="transcript-block flex-grow-1">{{ meeting.transcript }}</div>
@@ -323,6 +391,7 @@
           {% endif %}
         </div>
       </section>
+      {% endif %}
     </div>
 
     <aside

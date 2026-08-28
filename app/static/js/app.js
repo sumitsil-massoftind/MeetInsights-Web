@@ -28,6 +28,317 @@ function showToast(message) {
   }
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function getMeetingSummaryPlainText(body) {
+  if (!body) return "";
+  const lines = [];
+
+  body.childNodes.forEach((node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node;
+
+    if (el.classList.contains("meeting-summary-text")) {
+      const text = el.textContent.trim();
+      if (text) lines.push(text, "");
+      return;
+    }
+
+    if (
+      el.classList.contains("meeting-summary-subhead") ||
+      el.classList.contains("meeting-summary-topic-title")
+    ) {
+      const text = el.textContent.trim();
+      if (text) lines.push(text);
+      return;
+    }
+
+    if (el.classList.contains("meeting-summary-list")) {
+      el.querySelectorAll("li").forEach((li) => {
+        const text = li.textContent.trim();
+        if (text) lines.push(`• ${text}`);
+      });
+      lines.push("");
+    }
+  });
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function enableCopySummaryButton() {
+  document.querySelectorAll(".copy-summary-btn").forEach((button) => {
+    button.hidden = false;
+    button.disabled = false;
+  });
+}
+
+function initCopySummaryButtons() {
+  document.querySelectorAll(".copy-summary-btn").forEach((button) => {
+    if (button.dataset.miBound === "true") return;
+    button.dataset.miBound = "true";
+
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      const body = document.querySelector(".meeting-summary-body");
+      const text = getMeetingSummaryPlainText(body);
+      if (!text) {
+        showToast("Nothing to copy yet.");
+        return;
+      }
+
+      const originalHtml = button.innerHTML;
+      button.disabled = true;
+      try {
+        await copyTextToClipboard(text);
+        button.innerHTML = '<i class="bi bi-check2 me-1"></i> Copied';
+        showToast("Summary copied to clipboard.");
+        window.setTimeout(() => {
+          button.innerHTML = originalHtml;
+          button.disabled = false;
+        }, 1800);
+      } catch {
+        showToast("Unable to copy the summary.");
+        button.disabled = false;
+      }
+    });
+  });
+}
+
+function parseTranscriptTimestamp(value) {
+  const parts = String(value || "")
+    .trim()
+    .split(":")
+    .map((part) => Number(part));
+  if (parts.some((part) => Number.isNaN(part))) return null;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1) return parts[0];
+  return null;
+}
+
+const transcriptSync = {
+  activeKey: null,
+  follow: true,
+  followResumeTimer: null,
+  programmaticScroll: false,
+};
+
+function getTranscriptSyncRoot() {
+  return document.querySelector("[data-transcript-sync]");
+}
+
+function getTranscriptSegments() {
+  const root = getTranscriptSyncRoot();
+  if (!root) return [];
+  return Array.from(root.querySelectorAll(".transcript-segment[data-transcript-start]"));
+}
+
+function getTranscriptScrollContainer(segment) {
+  return (
+    segment.closest(".transcript-segments--sync") ||
+    segment.closest(".transcript-segments") ||
+    segment.closest("[data-transcript-scroll]")
+  );
+}
+
+function pauseTranscriptFollow() {
+  transcriptSync.follow = false;
+  if (transcriptSync.followResumeTimer) {
+    clearTimeout(transcriptSync.followResumeTimer);
+  }
+  transcriptSync.followResumeTimer = window.setTimeout(() => {
+    transcriptSync.follow = true;
+    transcriptSync.followResumeTimer = null;
+  }, 4000);
+}
+
+function resumeTranscriptFollow() {
+  transcriptSync.follow = true;
+  if (transcriptSync.followResumeTimer) {
+    clearTimeout(transcriptSync.followResumeTimer);
+    transcriptSync.followResumeTimer = null;
+  }
+}
+
+function findActiveTranscriptSegment(segments, currentTime) {
+  if (!segments.length) return null;
+
+  let active = null;
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    const start = parseTranscriptTimestamp(segment.getAttribute("data-transcript-start"));
+    if (start == null) continue;
+    if (start <= currentTime + 0.05) {
+      active = segment;
+      continue;
+    }
+    break;
+  }
+  return active;
+}
+
+function scrollTranscriptSegmentIntoView(segment, { force = false } = {}) {
+  if (!segment || (!transcriptSync.follow && !force)) return;
+
+  const container = getTranscriptScrollContainer(segment);
+  if (!container) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const segmentRect = segment.getBoundingClientRect();
+  const edgePadding = 72;
+  const above = segmentRect.top < containerRect.top + edgePadding;
+  const below = segmentRect.bottom > containerRect.bottom - edgePadding;
+
+  if (!force && !above && !below) return;
+
+  transcriptSync.programmaticScroll = true;
+  const targetTop =
+    container.scrollTop +
+    (segmentRect.top - containerRect.top) -
+    container.clientHeight / 2 +
+    segmentRect.height / 2;
+
+  container.scrollTo({ top: Math.max(0, targetTop), behavior: force ? "auto" : "smooth" });
+  window.setTimeout(() => {
+    transcriptSync.programmaticScroll = false;
+  }, 350);
+}
+
+function setActiveTranscriptSegment(segment) {
+  const segments = getTranscriptSegments();
+  const nextKey = segment
+    ? `${segment.getAttribute("data-transcript-start")}|${segment.getAttribute("data-transcript-end")}`
+    : null;
+
+  if (transcriptSync.activeKey === nextKey) return;
+  transcriptSync.activeKey = nextKey;
+
+  segments.forEach((item) => {
+    const isActive = item === segment;
+    item.classList.toggle("is-active", isActive);
+    item.setAttribute("aria-current", isActive ? "true" : "false");
+  });
+
+  if (segment) {
+    scrollTranscriptSegmentIntoView(segment);
+  }
+}
+
+function syncTranscriptToVideoTime(currentTime, { forceScroll = false } = {}) {
+  const segments = getTranscriptSegments();
+  if (!segments.length) return;
+
+  const active = findActiveTranscriptSegment(segments, currentTime);
+  setActiveTranscriptSegment(active);
+  if (active && forceScroll) {
+    scrollTranscriptSegmentIntoView(active, { force: true });
+  }
+}
+
+function seekVideoToTranscriptSeconds(seconds) {
+  const player = getTranscriptSyncRoot()?.querySelector(".recording-player");
+  if (seconds == null || !player) return;
+
+  resumeTranscriptFollow();
+  player.currentTime = seconds;
+  player.play().catch(() => {});
+  requestAnimationFrame(() => {
+    syncTranscriptToVideoTime(seconds, { forceScroll: true });
+  });
+}
+
+function bindTranscriptSyncScrollContainers() {
+  const root = getTranscriptSyncRoot();
+  if (!root) return;
+
+  root.querySelectorAll(".transcript-segments--sync, .transcript-segments").forEach((container) => {
+    if (container.dataset.miSyncBound === "true") return;
+    container.dataset.miSyncBound = "true";
+
+    const pause = () => pauseTranscriptFollow();
+    container.addEventListener("wheel", pause, { passive: true });
+    container.addEventListener("touchmove", pause, { passive: true });
+    container.addEventListener("scroll", () => {
+      if (!transcriptSync.programmaticScroll) pauseTranscriptFollow();
+    }, { passive: true });
+  });
+}
+
+function initTranscriptSync() {
+  const root = getTranscriptSyncRoot();
+  if (!root) return;
+
+  bindTranscriptSyncScrollContainers();
+
+  root.querySelectorAll("[data-transcript-seek]").forEach((button) => {
+    if (button.dataset.miBound === "true") return;
+    button.dataset.miBound = "true";
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const seconds = parseTranscriptTimestamp(button.getAttribute("data-transcript-seek"));
+      seekVideoToTranscriptSeconds(seconds);
+    });
+  });
+
+  root.querySelectorAll(".transcript-segment[data-transcript-start]").forEach((segment) => {
+    if (segment.dataset.miBound === "true") return;
+    segment.dataset.miBound = "true";
+
+    const activate = (event) => {
+      if (event.target.closest("[data-transcript-seek]")) return;
+      const seconds = parseTranscriptTimestamp(segment.getAttribute("data-transcript-start"));
+      seekVideoToTranscriptSeconds(seconds);
+    };
+
+    segment.addEventListener("click", activate);
+    segment.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        activate(event);
+      }
+    });
+  });
+
+  const player = root.querySelector(".recording-player");
+  if (!player || player.dataset.miTranscriptSync === "true") return;
+  player.dataset.miTranscriptSync = "true";
+
+  player.addEventListener("timeupdate", () => {
+    syncTranscriptToVideoTime(player.currentTime || 0);
+  });
+
+  player.addEventListener("seeked", () => {
+    syncTranscriptToVideoTime(player.currentTime || 0, { forceScroll: true });
+  });
+
+  player.addEventListener("play", resumeTranscriptFollow);
+
+  if (player.readyState >= 1) {
+    syncTranscriptToVideoTime(player.currentTime || 0);
+  } else {
+    player.addEventListener(
+      "loadedmetadata",
+      () => syncTranscriptToVideoTime(player.currentTime || 0),
+      { once: true }
+    );
+  }
+}
+
 async function postJson(url, body) {
   return window.MiAuth.postJson(url, body);
 }
@@ -475,6 +786,7 @@ if (!window.__miSelectListeners) {
 
 function initAppPage() {
   initCustomSelects();
+  initCopySummaryButtons();
 
   document.querySelectorAll(".meeting-source-switch").forEach((switchEl) => {
     switchEl.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
@@ -748,6 +1060,8 @@ function initAppPage() {
       }
     });
   });
+
+  initTranscriptSync();
 
   document.querySelectorAll(".regenerate-transcript-btn").forEach((button) => {
     if (button.dataset.miBound === "true") return;

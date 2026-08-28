@@ -99,6 +99,7 @@
       renderText("Final outcome", data.summary_outcome),
     ].join("");
     enableMeetingChat();
+    if (typeof enableCopySummaryButton === "function") enableCopySummaryButton();
   }
 
   function openSocket(url, token) {
