@@ -237,6 +237,45 @@
     return generatePromise;
   }
 
+  function requestTranslation(meetingId) {
+    if (!socket || !socket.connected) {
+      return Promise.reject(new Error("Translation service is not connected."));
+    }
+
+    return new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Translation timed out. Please try again."));
+      }, GENERATE_TIMEOUT_MS);
+
+      function matches(payload) {
+        return !payload || !payload.meeting_id || payload.meeting_id === meetingId;
+      }
+
+      function cleanup() {
+        window.clearTimeout(timer);
+        socket.off("translation:ready", onReady);
+        socket.off("translation:error", onError);
+      }
+
+      function onReady(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        resolve(payload || {});
+      }
+
+      function onError(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        reject(new Error((payload && payload.msg) || "Unable to translate the transcript."));
+      }
+
+      socket.on("translation:ready", onReady);
+      socket.on("translation:error", onError);
+      socket.emit("translation:generate", { meeting_id: meetingId });
+    });
+  }
+
   function requestChat(meetingId, message, history, meetingIds) {
     if (chatPromise) return chatPromise;
     if (!socket || !socket.connected) {
@@ -337,6 +376,7 @@
   global.MiInsightSocket = {
     connect,
     requestSummary,
+    requestTranslation,
     requestChat,
     patchSummaryCard,
   };

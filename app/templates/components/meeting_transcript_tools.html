@@ -1,0 +1,42 @@
+{% if meeting.has_transcript %}
+<div
+  class="transcript-translation-tools"
+  data-transcript-tools
+  data-meeting-id="{{ meeting.id }}"
+  data-socket-url="{{ meetinsight_socket_url }}"
+  data-has-translation="{{ 'true' if meeting.has_translation else 'false' }}"
+  data-language="{{ meeting.language or '' }}"
+>
+  <div
+    class="transcript-view-toggle{% if not meeting.has_translation %} d-none{% endif %}"
+    data-transcript-view-toggle
+    role="group"
+    aria-label="Transcript language view"
+  >
+    <button
+      type="button"
+      class="transcript-view-btn is-active"
+      data-transcript-view="original"
+      aria-pressed="true"
+    >
+      Original
+    </button>
+    <button
+      type="button"
+      class="transcript-view-btn"
+      data-transcript-view="english"
+      aria-pressed="false"
+    >
+      English
+    </button>
+  </div>
+  <button
+    type="button"
+    class="btn btn-sm btn-soft translate-transcript-btn{% if meeting.has_translation %} d-none{% endif %}"
+    data-translate-transcript-btn
+    {% if not meeting.transcript_segments %}data-translate-plain="true"{% endif %}
+  >
+    <i class="bi bi-translate me-1"></i> Translate to English
+  </button>
+</div>
+{% endif %}

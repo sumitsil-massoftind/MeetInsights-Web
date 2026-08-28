@@ -194,6 +194,8 @@ def serialize_meeting(
 
     full_transcript = (doc.get("transcript") or "").strip()
     segments = doc.get("transcript_segments") or []
+    translated_segments = doc.get("transcript_segments_translated") or []
+    translated_transcript = (doc.get("transcript_translated") or "").strip()
     speakers = doc.get("speakers") or []
     preview = (doc.get("transcript_preview") or "").strip()
     if not preview and full_transcript:
@@ -251,6 +253,10 @@ def serialize_meeting(
         "speakers": speakers,
         "transcript": full_transcript,
         "transcript_segments": segments,
+        "transcript_segments_translated": translated_segments,
+        "transcript_translated": translated_transcript,
+        "translation_language": doc.get("translation_language"),
+        "has_translation": bool(translated_segments or translated_transcript),
         "has_transcript": bool(segments or full_transcript),
         "has_summary": bool((doc.get("summary") or "").strip()),
         "summary": doc.get("summary") or summary_placeholder,
@@ -663,6 +669,11 @@ SHARE_COPY_FIELDS = (
     "transcript",
     "transcript_preview",
     "transcript_segments",
+    "transcript_segments_translated",
+    "transcript_translated",
+    "translation_language",
+    "translation_provider",
+    "translated_at",
     "speakers",
     "transcription_provider",
     "summary",
