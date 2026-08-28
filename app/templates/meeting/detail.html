@@ -445,14 +445,14 @@
       <div class="chat-input-area">
         <form class="chat-form" data-chat-kind="meeting" novalidate>
           <div class="chat-input-row">
-            <input
-              type="text"
+            <textarea
               name="message"
               class="form-control chat-input"
+              rows="1"
               placeholder="{% if meeting.no_audio %}No audio in this meeting…{% elif meeting.has_summary %}Ask anything about this meeting…{% else %}Summary required before chat…{% endif %}"
               autocomplete="off"
               {% if not meeting.has_summary %}disabled{% else %}required{% endif %}
-            >
+            ></textarea>
             <button
               type="submit"
               class="btn btn-primary chat-send-btn"

@@ -68,12 +68,14 @@
       badge.hidden = false;
       badge.textContent = "Ready";
     }
-    const input = panel.querySelector('input[name="message"]');
+    const input = panel.querySelector('textarea[name="message"], input[name="message"]');
     const sendBtn = panel.querySelector(".chat-send-btn");
     if (input) {
       input.disabled = false;
       input.required = true;
       input.placeholder = "Ask anything about this meeting…";
+      if (typeof bindChatInputAutoResize === "function") bindChatInputAutoResize(input);
+      if (typeof autoResizeChatInput === "function") autoResizeChatInput(input);
     }
     if (sendBtn) sendBtn.disabled = false;
   }

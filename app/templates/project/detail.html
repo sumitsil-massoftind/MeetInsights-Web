@@ -190,15 +190,15 @@
         <form class="chat-form" data-chat-kind="project" novalidate>
           <input type="hidden" name="meeting_ids" id="selected-meeting-ids" value="">
           <div class="chat-input-row">
-            <input
-              type="text"
+            <textarea
               name="message"
               id="project-chat-input"
               class="form-control chat-input"
+              rows="1"
               placeholder="Ask about selected meetings…"
               autocomplete="off"
               required
-            >
+            ></textarea>
             <button type="submit" class="btn btn-primary chat-send-btn" id="project-chat-send" title="Send" disabled>
               <i class="bi bi-send"></i>
             </button>

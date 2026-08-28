@@ -199,6 +199,55 @@ function selectedMeetingIdsWithSummary() {
     .map((el) => el.value);
 }
 
+const CHAT_INPUT_MAX_HEIGHT = 160;
+
+function getChatMessageInput(root) {
+  return (
+    (root && root.querySelector('textarea[name="message"], input[name="message"]')) ||
+    null
+  );
+}
+
+function autoResizeChatInput(textarea) {
+  if (!textarea || textarea.tagName !== "TEXTAREA") return;
+  textarea.style.height = "auto";
+  const maxHeight = CHAT_INPUT_MAX_HEIGHT;
+  const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+  textarea.style.height = `${nextHeight}px`;
+  textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+}
+
+function resetChatInputHeight(textarea) {
+  if (!textarea || textarea.tagName !== "TEXTAREA") return;
+  textarea.style.height = "";
+  autoResizeChatInput(textarea);
+}
+
+function bindChatInputAutoResize(textarea) {
+  if (!textarea || textarea.dataset.miAutoResize === "true") return;
+  textarea.dataset.miAutoResize = "true";
+
+  autoResizeChatInput(textarea);
+
+  textarea.addEventListener("input", () => autoResizeChatInput(textarea));
+
+  textarea.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    const form = textarea.closest(".chat-form");
+    if (!form) return;
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    }
+  });
+}
+
+function initChatInputAutoResize() {
+  document.querySelectorAll(".chat-input").forEach(bindChatInputAutoResize);
+}
+
 async function sendMeetingChat(form, message) {
   const panel = form.closest(".chat-panel");
   const meetingId = panel && panel.getAttribute("data-meeting-id");
@@ -244,6 +293,8 @@ async function sendProjectChat(form, message, meetingIds) {
 }
 
 function initChatPage() {
+  initChatInputAutoResize();
+
   document.querySelectorAll(".chat-form").forEach((form) => {
     if (form.dataset.miChatBound === "true") return;
     form.dataset.miChatBound = "true";
@@ -261,7 +312,7 @@ function initChatPage() {
         return;
       }
 
-      const input = form.querySelector('input[name="message"], textarea[name="message"]');
+      const input = getChatMessageInput(form);
       if (!input) return;
 
       const message = (input.value || "").trim();
@@ -275,6 +326,7 @@ function initChatPage() {
 
       if (submitBtn) submitBtn.disabled = true;
       input.value = "";
+      resetChatInputHeight(input);
       input.focus();
       const userBubble = appendUserBubble(messages, message);
       const typingBubble = appendAssistantTyping(messages);
@@ -300,6 +352,7 @@ function initChatPage() {
         }
         if (userBubble) userBubble.remove();
         input.value = message;
+        autoResizeChatInput(input);
         input.focus();
         if (typeof showToast === "function") {
           showToast(err.message || "Unable to send message.");
@@ -348,9 +401,10 @@ function initChatPage() {
         }
       }
 
-      const input = form.querySelector('input[name="message"]');
+      const input = getChatMessageInput(form);
       if (!input || input.disabled) return;
       input.value = prompt;
+      autoResizeChatInput(input);
       if (typeof form.requestSubmit === "function") {
         form.requestSubmit();
       } else {
