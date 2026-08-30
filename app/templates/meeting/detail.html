@@ -114,16 +114,16 @@
   <div class="meeting-layout">
     <div class="meeting-main">
       {% if meeting.recording_available %}
+      {% set transcript_pending = meeting.status_raw in ["queued", "processing"] %}
       <section
-        class="mi-card recording-card{% if meeting.transcript_segments %} recording-card--synced{% endif %}"
+        class="mi-card recording-card recording-card--synced"
         {% if meeting.transcript_segments %}data-transcript-sync{% endif %}
       >
-        {% if meeting.transcript_segments %}
         <div class="recording-meta-bar">
           <span class="recording-eyebrow">
             <span class="recording-eyebrow-dot"></span> Recording
           </span>
-          <span class="recording-meta-title">{{ meeting.name }}</span>
+          <span class="recording-meta-title" title="{{ meeting.name }}">{{ meeting.name }}</span>
           <div class="recording-facts">
             <span class="recording-fact">
               <i class="bi bi-clock"></i> {{ meeting.duration_label }}
@@ -136,6 +136,10 @@
             {% if meeting.language %}
             <span class="recording-fact">
               <i class="bi bi-translate"></i> {{ meeting.language }}
+            </span>
+            {% elif meeting.platform_label %}
+            <span class="recording-fact">
+              <i class="bi bi-camera-video"></i> {{ meeting.platform_label }}
             </span>
             {% endif %}
           </div>
@@ -152,9 +156,8 @@
             </a>
           </div>
         </div>
-        {% endif %}
 
-        <div class="recording-stage{% if meeting.transcript_segments %} recording-stage--with-transcript{% endif %}">
+        <div class="recording-stage recording-stage--with-transcript">
           <div class="recording-primary">
             <div class="recording-frame">
               <video
@@ -166,51 +169,9 @@
                 Your browser does not support video playback.
               </video>
             </div>
-
-            {% if not meeting.transcript_segments %}
-            <div class="recording-side">
-              <span class="recording-eyebrow">
-                <span class="recording-eyebrow-dot"></span> Recording
-              </span>
-              <h2 class="recording-title">{{ meeting.name }}</h2>
-
-              <div class="recording-facts">
-                <span class="recording-fact">
-                  <i class="bi bi-clock"></i> {{ meeting.duration_label }}
-                </span>
-                {% if meeting.recording_size_label %}
-                <span class="recording-fact">
-                  <i class="bi bi-hdd"></i> {{ meeting.recording_size_label }}
-                </span>
-                {% endif %}
-                <span class="recording-fact">
-                  <i class="bi bi-camera-video"></i> {{ meeting.platform_label or "Uploaded recording" }}
-                </span>
-              </div>
-
-              <p class="recording-file" title="{{ meeting.original_filename or meeting.recording_filename }}">
-                <i class="bi bi-file-earmark-play"></i>
-                <span>{{ meeting.original_filename or meeting.recording_filename }}</span>
-              </p>
-
-              <div class="recording-actions">
-                <button type="button" class="recording-btn" data-recording-fullscreen>
-                  <i class="bi bi-arrows-fullscreen"></i> Full screen
-                </button>
-                <a
-                  class="recording-btn"
-                  href="/meetings/{{ meeting.id }}/recording?download=1"
-                  download
-                >
-                  <i class="bi bi-download"></i> Download
-                </a>
-              </div>
-            </div>
-            {% endif %}
           </div>
 
-          {% if meeting.transcript_segments %}
-          <div class="recording-transcript-panel">
+          <div class="recording-transcript-panel{% if not meeting.transcript_segments %} is-placeholder{% endif %}">
             <div class="recording-transcript-head">
               <div>
                 <h2 class="recording-transcript-title">
@@ -218,20 +179,59 @@
                 </h2>
                 {% if meeting.language %}
                 <p class="recording-transcript-lang small mb-0">{{ meeting.language }}</p>
+                {% elif transcript_pending %}
+                <p class="recording-transcript-lang small mb-0">Processing</p>
                 {% endif %}
               </div>
               <div class="recording-transcript-tools">
+                {% if meeting.transcript_segments %}
                 {% include "components/meeting_transcript_tools.html" %}
                 <span class="recording-sync-hint">
                   <i class="bi bi-broadcast"></i> Synced with video
                 </span>
+                {% elif transcript_pending %}
+                <span class="recording-sync-hint">
+                  <i class="bi bi-hourglass-split"></i> In progress
+                </span>
+                {% endif %}
               </div>
             </div>
+            {% if meeting.transcript_segments %}
             <div class="transcript-segments transcript-segments--sync" data-transcript-segments>
               {% include "components/meeting_transcript_segments.html" %}
             </div>
+            {% elif meeting.transcript %}
+            <div class="transcript-block transcript-block--on-recording" data-transcript-plain>{{ meeting.transcript }}</div>
+            {% else %}
+            <div class="recording-transcript-placeholder">
+              {% if transcript_pending %}
+              <span class="recording-transcript-spinner" aria-hidden="true"></span>
+              <p class="recording-transcript-placeholder-title">Generating transcript</p>
+              <p class="recording-transcript-placeholder-copy">
+                This usually takes a few minutes. The transcript will appear here next to the video.
+              </p>
+              {% elif meeting.no_audio %}
+              <i class="bi bi-volume-mute recording-transcript-placeholder-icon" aria-hidden="true"></i>
+              <p class="recording-transcript-placeholder-title">No audio in this recording</p>
+              <p class="recording-transcript-placeholder-copy">
+                A transcript cannot be created because this meeting has no audio track.
+              </p>
+              {% elif meeting.processing_error %}
+              <i class="bi bi-exclamation-circle recording-transcript-placeholder-icon" aria-hidden="true"></i>
+              <p class="recording-transcript-placeholder-title">Transcript unavailable</p>
+              <p class="recording-transcript-placeholder-copy">
+                Unable to generate a transcript right now. Try regenerating when you are ready.
+              </p>
+              {% else %}
+              <i class="bi bi-chat-left-text recording-transcript-placeholder-icon" aria-hidden="true"></i>
+              <p class="recording-transcript-placeholder-title">Transcript preview</p>
+              <p class="recording-transcript-placeholder-copy">
+                {{ meeting.transcript_preview or "Transcript will appear here once processing completes." }}
+              </p>
+              {% endif %}
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
         </div>
       </section>
       {% endif %}
@@ -374,7 +374,7 @@
         </div>
       </section>
 
-      {% if not meeting.recording_available or not meeting.transcript_segments %}
+      {% if not meeting.recording_available %}
       <section class="mi-card meeting-transcript-card">
         <div class="mi-card-body d-flex flex-column h-100">
           <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
