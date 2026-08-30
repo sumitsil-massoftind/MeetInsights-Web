@@ -44,25 +44,27 @@
     const end = escapeHtml(segment.end || "");
     const text = escapeHtml(segment.text || "");
     const stamp = start && end ? `${start} – ${end}` : start || end;
-    return `
-      <article
-        class="transcript-segment"
-        data-transcript-start="${start}"
-        data-transcript-end="${end}"
-        tabindex="0"
-        role="button"
-        aria-label="Jump to ${start}"
-      >
-        <div class="transcript-segment-meta">
-          <span class="transcript-speaker">${speaker}</span>
-          <button
+    const seekAttrs = start
+      ? `data-transcript-start="${start}"${end ? ` data-transcript-end="${end}"` : ""} tabindex="0" role="button" aria-label="Jump to ${start}"`
+      : "";
+    const timeButton = stamp
+      ? `<button
             type="button"
             class="transcript-time transcript-seek-btn"
             data-transcript-seek="${start}"
             title="Jump to ${start}"
           >
             ${stamp}
-          </button>
+          </button>`
+      : "";
+    return `
+      <article
+        class="transcript-segment"
+        ${seekAttrs}
+      >
+        <div class="transcript-segment-meta">
+          <span class="transcript-speaker">${speaker}</span>
+          ${timeButton}
         </div>
         <p class="transcript-segment-text mb-0">${text}</p>
       </article>

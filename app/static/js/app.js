@@ -119,10 +119,9 @@ function initCopySummaryButtons() {
 }
 
 function parseTranscriptTimestamp(value) {
-  const parts = String(value || "")
-    .trim()
-    .split(":")
-    .map((part) => Number(part));
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const parts = raw.split(":").map((part) => Number(part));
   if (parts.some((part) => Number.isNaN(part))) return null;
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   if (parts.length === 2) return parts[0] * 60 + parts[1];

@@ -1,22 +1,22 @@
 {% for segment in meeting.transcript_segments %}
 <article
   class="transcript-segment"
-  data-transcript-start="{{ segment.start }}"
-  data-transcript-end="{{ segment.end }}"
-  tabindex="0"
-  role="button"
-  aria-label="Jump to {{ segment.start }}"
+  {% if segment.start %}data-transcript-start="{{ segment.start }}"{% endif %}
+  {% if segment.end %}data-transcript-end="{{ segment.end }}"{% endif %}
+  {% if segment.start %}tabindex="0" role="button" aria-label="Jump to {{ segment.start }}"{% endif %}
 >
   <div class="transcript-segment-meta">
     <span class="transcript-speaker">{{ segment.speaker }}</span>
+    {% if segment.start or segment.end %}
     <button
       type="button"
       class="transcript-time transcript-seek-btn"
       data-transcript-seek="{{ segment.start }}"
       title="Jump to {{ segment.start }}"
     >
-      {{ segment.start }} – {{ segment.end }}
+      {% if segment.start and segment.end %}{{ segment.start }} – {{ segment.end }}{% else %}{{ segment.start or segment.end }}{% endif %}
     </button>
+    {% endif %}
   </div>
   <p class="transcript-segment-text mb-0">{{ segment.text }}</p>
 </article>
