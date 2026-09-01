@@ -2801,6 +2801,14 @@ a:hover {
 .join-meeting-card {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--md-primary-container) 35%, white) 0%, var(--mi-surface) 42%);
+  overflow: visible;
+}
+
+.join-meeting-card .mi-card-body,
+.join-meeting-card .tab-content,
+.join-meeting-card .tab-pane,
+.join-meeting-card .row {
+  overflow: visible;
 }
 
 .mi-link {
@@ -2967,6 +2975,10 @@ select.form-select {
   min-width: 0;
 }
 
+.mi-select.is-open {
+  z-index: 40;
+}
+
 .mi-select > select.form-select {
   position: absolute !important;
   width: 1px !important;
@@ -3049,6 +3061,12 @@ select.form-select {
 }
 
 .mi-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  min-width: 168px;
   z-index: 1080;
   margin: 0;
   padding: 0.4rem;
@@ -3059,6 +3077,11 @@ select.form-select {
   box-shadow: var(--mi-shadow-lg);
   max-height: 280px;
   overflow: auto;
+}
+
+.mi-select.is-dropup .mi-select-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 .mi-select-option {

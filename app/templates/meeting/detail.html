@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="meeting-detail">
+<div
+  class="meeting-detail"
+  data-meeting-id="{{ meeting.id }}"
+  data-has-transcript="{{ 'true' if meeting.has_transcript else 'false' }}"
+  data-status-raw="{{ meeting.status_raw }}"
+  {% if meeting.status_raw in ['queued', 'processing'] and not meeting.no_audio %}
+  data-meeting-status-poll="true"
+  {% endif %}
+>
   <div class="page-header meeting-detail-header">
     <nav aria-label="breadcrumb" class="mb-2">
       <ol class="breadcrumb small mb-0">

@@ -342,8 +342,94 @@ async function postJson(url, body) {
   return window.MiAuth.postJson(url, body);
 }
 
+async function getJson(url) {
+  return window.MiAuth.getJson(url);
+}
+
 async function deleteJson(url) {
   return window.MiAuth.deleteJson(url);
+}
+
+const MEETING_STATUS_POLL_MS = 6000;
+let meetingStatusPollTimer = null;
+
+function stopMeetingStatusPoll() {
+  if (meetingStatusPollTimer) {
+    window.clearInterval(meetingStatusPollTimer);
+    meetingStatusPollTimer = null;
+  }
+}
+
+function reloadCurrentMeetingPage(toastMessage) {
+  const url = `${window.location.pathname}${window.location.search}${window.location.hash || ""}`;
+  if (toastMessage) {
+    window.sessionStorage.setItem("mi_meeting_poll_toast", toastMessage);
+  }
+  if (window.MiNavigation && typeof window.MiNavigation.navigate === "function") {
+    window.MiNavigation.navigate(url, { push: false });
+    return;
+  }
+  window.location.assign(url);
+}
+
+function initMeetingStatusPoll() {
+  stopMeetingStatusPoll();
+
+  const root = document.querySelector(".meeting-detail[data-meeting-status-poll]");
+  if (!root) return;
+
+  const meetingId = root.getAttribute("data-meeting-id");
+  if (!meetingId) return;
+
+  const state = {
+    hadTranscript: root.getAttribute("data-has-transcript") === "true",
+    statusRaw: (root.getAttribute("data-status-raw") || "").toLowerCase(),
+  };
+
+  async function tick() {
+    try {
+      const result = await getJson(`/api/meetings/${meetingId}/status`);
+      const data = result.data || {};
+      const status = String(data.status || "").toLowerCase();
+
+      if (data.has_transcript && !state.hadTranscript) {
+        stopMeetingStatusPoll();
+        reloadCurrentMeetingPage("Transcript is ready.");
+        return;
+      }
+
+      if (status === "failed") {
+        stopMeetingStatusPoll();
+        if (state.statusRaw !== "failed") {
+          reloadCurrentMeetingPage();
+        }
+        return;
+      }
+
+      if (status === "completed") {
+        stopMeetingStatusPoll();
+        if (state.statusRaw !== "completed") {
+          reloadCurrentMeetingPage();
+        }
+        return;
+      }
+    } catch (_err) {
+      /* Keep polling through transient network errors. */
+    }
+  }
+
+  tick();
+  meetingStatusPollTimer = window.setInterval(tick, MEETING_STATUS_POLL_MS);
+}
+
+function navigateToMeeting(meetingId) {
+  if (!meetingId) return;
+  const url = `/meetings/${meetingId}`;
+  if (window.MiNavigation && typeof window.MiNavigation.navigate === "function") {
+    window.MiNavigation.navigate(url);
+    return;
+  }
+  window.location.assign(url);
 }
 
 let pendingDelete = null;
@@ -619,7 +705,7 @@ let openMiSelect = null;
 function closeMiSelect(widget) {
   const target = widget || openMiSelect;
   if (!target) return;
-  target.classList.remove("is-open");
+  target.classList.remove("is-open", "is-dropup");
   const toggle = target.querySelector(".mi-select-toggle");
   const menu = target.querySelector(".mi-select-menu");
   if (toggle) toggle.setAttribute("aria-expanded", "false");
@@ -690,17 +776,14 @@ function enhanceSelect(select) {
     const menuHeight = Math.min(menu.scrollHeight || 240, 280);
     const spaceBelow = window.innerHeight - rect.bottom - 12;
     const openUp = spaceBelow < menuHeight && rect.top > spaceBelow;
-    menu.style.position = "fixed";
-    menu.style.left = `${Math.max(8, rect.left)}px`;
-    menu.style.width = `${Math.max(rect.width, 168)}px`;
-    menu.style.right = "auto";
-    if (openUp) {
-      menu.style.top = "auto";
-      menu.style.bottom = `${window.innerHeight - rect.top + 6}px`;
-    } else {
-      menu.style.top = `${rect.bottom + 6}px`;
-      menu.style.bottom = "auto";
-    }
+    widget.classList.toggle("is-dropup", openUp);
+    menu.style.position = "";
+    menu.style.left = "";
+    menu.style.top = "";
+    menu.style.bottom = "";
+    menu.style.width = "";
+    menu.style.right = "";
+    menu.style.zIndex = "";
   }
 
   function openMenu() {
@@ -761,6 +844,7 @@ function enhanceSelect(select) {
   });
 
   renderOptions();
+  widget._positionMenu = positionMenu;
 }
 
 function initCustomSelects() {
@@ -778,7 +862,13 @@ if (!window.__miSelectListeners) {
   });
   window.addEventListener("resize", closeAllMiSelects);
   document.addEventListener("scroll", (event) => {
-    if (openMiSelect && openMiSelect.querySelector(".mi-select-menu") === event.target) return;
+    if (!openMiSelect) return;
+    if (openMiSelect.querySelector(".mi-select-menu") === event.target) return;
+    const menu = openMiSelect.querySelector(".mi-select-menu");
+    if (menu && !menu.hidden && openMiSelect._positionMenu) {
+      openMiSelect._positionMenu();
+      return;
+    }
     closeAllMiSelects();
   }, true);
 }
@@ -850,6 +940,7 @@ function initAppPage() {
         showToast(result.msg || `Bot invited to join “${meeting.title || "meeting"}”.`);
         form.reset();
         syncJoinMeetingPlaceholder(form);
+        navigateToMeeting(meeting.id);
       } catch (err) {
         showToast(err.message || "Unable to invite the bot. Please try again.");
       } finally {
@@ -997,6 +1088,7 @@ function initAppPage() {
         showToast(msg || `Uploaded “${meeting.title || "recording"}”.`);
         form.reset();
         syncFileLabel();
+        navigateToMeeting(meeting.id);
       } catch (err) {
         showToast(err.message || "Unable to upload the recording. Please try again.");
       } finally {
@@ -1061,6 +1153,13 @@ function initAppPage() {
   });
 
   initTranscriptSync();
+  initMeetingStatusPoll();
+
+  const pollToast = window.sessionStorage.getItem("mi_meeting_poll_toast");
+  if (pollToast) {
+    window.sessionStorage.removeItem("mi_meeting_poll_toast");
+    showToast(pollToast);
+  }
 
   document.querySelectorAll(".regenerate-transcript-btn").forEach((button) => {
     if (button.dataset.miBound === "true") return;
@@ -1077,8 +1176,7 @@ function initAppPage() {
       try {
         const result = await postJson(url, {});
         showToast(result.msg || "Recording queued to regenerate the transcript.");
-        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Transcript queued';
-        button.title = "Transcription is queued";
+        reloadCurrentMeetingPage();
       } catch (err) {
         button.disabled = false;
         button.innerHTML = originalHtml;

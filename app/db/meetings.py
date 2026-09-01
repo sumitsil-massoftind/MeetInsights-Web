@@ -414,6 +414,56 @@ async def update_meeting_status(meeting_id: str, status: str) -> None:
     )
 
 
+async def clear_transcript_for_regeneration(meeting_id: str) -> None:
+    """Remove stored transcript/summary so regeneration can run and the UI can poll cleanly."""
+    try:
+        oid = ObjectId(str(meeting_id))
+    except (InvalidId, TypeError, ValueError):
+        return
+
+    await get_db().meetings.update_one(
+        {"_id": oid},
+        {
+            "$set": {
+                "status": STATUS_QUEUED,
+                "updated_at": _utcnow(),
+                "processing_error": None,
+                "processing_error_code": None,
+            },
+            "$unset": {
+                "transcript": "",
+                "transcript_preview": "",
+                "transcript_segments": "",
+                "speakers": "",
+                "language": "",
+                "transcription_provider": "",
+                "processed_at": "",
+                "transcript_segments_translated": "",
+                "transcript_translated": "",
+                "translation_language": "",
+                "translation_provider": "",
+                "translated_at": "",
+                "summary": "",
+                "summary_objective": "",
+                "summary_meeting_objective": "",
+                "summary_topics": "",
+                "summary_requirements": "",
+                "summary_decisions": "",
+                "summary_business_rules": "",
+                "summary_technical": "",
+                "summary_action_items": "",
+                "summary_open_questions": "",
+                "summary_risks": "",
+                "summary_contradictions": "",
+                "summary_timestamps": "",
+                "summary_outcome": "",
+                "summary_provider": "",
+                "summarized_at": "",
+            },
+        },
+    )
+
+
 async def update_meeting_project(
     *,
     meeting_id: str | ObjectId,

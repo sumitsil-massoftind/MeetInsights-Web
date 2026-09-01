@@ -112,6 +112,18 @@
     return response;
   }
 
+  async function getJson(url) {
+    const response = await apiFetch(url, { method: "GET" });
+    const result = await readEnvelope(response);
+    if (!result.ok) {
+      const error = new Error(result.msg);
+      error.status = response.status;
+      error.data = result.data;
+      throw error;
+    }
+    return result;
+  }
+
   async function postJson(url, body) {
     const response = await apiFetch(url, {
       method: "POST",
@@ -161,6 +173,7 @@
     apiFetch,
     deleteJson,
     getAccessToken,
+    getJson,
     postForm,
     postJson,
     refreshAccessToken,

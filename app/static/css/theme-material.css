@@ -214,6 +214,14 @@ body {
     radial-gradient(circle at 100% 0%, rgba(34, 211, 238, 0.12), transparent 45%),
     var(--mi-gradient-surface);
   border-color: rgba(6, 182, 212, 0.2);
+  overflow: visible;
+}
+
+.join-meeting-card .mi-card-body,
+.join-meeting-card .tab-content,
+.join-meeting-card .tab-pane,
+.join-meeting-card .row {
+  overflow: visible;
 }
 
 /* Buttons */

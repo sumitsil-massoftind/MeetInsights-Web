@@ -43,6 +43,35 @@ def _meeting_payload(meeting: dict) -> dict:
     }
 
 
+def _meeting_status_payload(meeting: dict) -> dict:
+    segments = meeting.get("transcript_segments") or []
+    full_transcript = (meeting.get("transcript") or "").strip()
+    return {
+        "id": meeting["id"],
+        "status": meeting.get("status_raw") or meeting.get("status"),
+        "has_transcript": bool(segments or full_transcript),
+        "has_summary": bool(meeting.get("has_summary")),
+        "no_audio": bool(meeting.get("no_audio")),
+        "processing_error": meeting.get("processing_error"),
+    }
+
+
+@router.get("/{meeting_id}/status")
+async def api_meeting_status(request: Request, meeting_id: str):
+    """Lightweight processing status for live meeting detail updates."""
+    from app.db import meetings as meetings_repo
+
+    user = getattr(request.state, "user", None)
+    if not user:
+        return api_error("Please sign in to continue.", status_code=401)
+
+    meeting = await meetings_repo.find_meeting_by_id(meeting_id, user_id=user["_id"])
+    if not meeting:
+        return api_error("Meeting not found.", status_code=404)
+
+    return api_success(_meeting_status_payload(meeting))
+
+
 @router.post("")
 async def api_create_meeting(request: Request, body: CreateMeetingBody):
     """
@@ -140,7 +169,7 @@ async def api_regenerate_transcript(request: Request, meeting_id: str):
     if meeting.get("status_raw") in {"queued", "processing"}:
         return api_error("Transcription is already queued or processing.", status_code=409)
 
-    await meetings_repo.update_meeting_status(meeting_id, "queued")
+    await meetings_repo.clear_transcript_for_regeneration(meeting_id)
     try:
         await publish_recording_ready(meeting_id)
     except Exception:
