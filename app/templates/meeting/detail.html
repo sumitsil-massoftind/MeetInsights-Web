@@ -382,6 +382,79 @@
         </div>
       </section>
 
+      <section
+        class="mi-card meeting-scope-card"
+        data-meeting-id="{{ meeting.id }}"
+        data-socket-url="{{ meetinsight_socket_url }}"
+        data-has-transcript="{{ 'true' if meeting.has_transcript else 'false' }}"
+      >
+        <div class="mi-card-body">
+          <div class="meeting-summary-head">
+            <h2 class="section-title mb-0">
+              <i class="bi bi-diagram-3"></i> Project Scope
+            </h2>
+            <div class="meeting-summary-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary regenerate-scope-btn{% if not meeting.has_scope %} d-none{% endif %}"
+                id="regenerate-scope-btn"
+              >
+                <i class="bi bi-arrow-repeat me-1"></i> Regenerate Scope
+              </button>
+            </div>
+          </div>
+          <p class="text-muted-mi small mb-3">
+            Generate a structured project scope using the current project context and this meeting.
+          </p>
+
+          <div class="project-scope-form">
+            <label for="project-scope-context" class="form-label small fw-semibold">
+              Project Context
+            </label>
+            <textarea
+              id="project-scope-context"
+              class="form-control project-scope-context"
+              rows="5"
+              placeholder="Add the current background, requirements, technical details, previous decisions, or other known information about this project..."
+              {% if not meeting.has_transcript %}disabled{% endif %}
+            >{% if meeting.scope_project_context %}{{ meeting.scope_project_context }}{% endif %}</textarea>
+            {% if not meeting.has_transcript %}
+            <p class="small text-muted-mi mt-2 mb-0">
+              Generate a transcript before creating project scope.
+            </p>
+            {% endif %}
+            <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+              <button
+                type="button"
+                class="btn btn-primary generate-scope-btn"
+                id="generate-scope-btn"
+                {% if not meeting.has_transcript %}disabled title="Generate a transcript first"{% endif %}
+              >
+                <i class="bi bi-stars me-1"></i> Generate Project Scope
+              </button>
+            </div>
+          </div>
+
+          <div id="project-scope-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+          <div id="project-scope-loading" class="project-scope-loading mt-3 d-none" aria-live="polite">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Generating project scope…
+          </div>
+          <div
+            id="project-scope-result"
+            class="meeting-scope-body mt-3{% if not meeting.has_scope %} d-none{% endif %}"
+            {% if meeting.has_scope %}data-mi-scope-rendered="server"{% endif %}
+          >
+            {% if meeting.has_scope %}
+            {% include "components/meeting_scope_result.html" %}
+            {% endif %}
+          </div>
+          {% if meeting.has_scope %}
+          <script type="application/json" id="meeting-scope-data">{{ meeting.scope | tojson }}</script>
+          {% endif %}
+        </div>
+      </section>
+
       {% if not meeting.recording_available %}
       <section class="mi-card meeting-transcript-card">
         <div class="mi-card-body d-flex flex-column h-100">

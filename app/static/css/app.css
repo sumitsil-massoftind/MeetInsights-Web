@@ -1031,6 +1031,19 @@ a:hover {
   font-size: 0.95rem;
 }
 
+.meeting-scope-card .project-scope-context {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.project-scope-loading {
+  display: flex;
+  align-items: center;
+  color: var(--mi-text-muted);
+  font-size: 0.9rem;
+}
+
 .meeting-summary-head {
   display: flex;
   align-items: center;

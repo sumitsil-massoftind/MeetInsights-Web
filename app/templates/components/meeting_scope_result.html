@@ -1,0 +1,77 @@
+{% set s = meeting.scope %}
+{% if s.project_overview %}
+<h3 class="meeting-summary-subhead">Project Overview</h3>
+<p class="meeting-summary-text">{{ s.project_overview }}</p>
+{% endif %}
+{% if s.scope_changes %}
+<h3 class="meeting-summary-subhead">Scope Changes</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.scope_changes %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.objectives %}
+<h3 class="meeting-summary-subhead">Objectives</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.objectives %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.in_scope %}
+<h3 class="meeting-summary-subhead">In Scope</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.in_scope %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.functional_requirements %}
+<h3 class="meeting-summary-subhead">Functional Requirements</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.functional_requirements %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.business_rules %}
+<h3 class="meeting-summary-subhead">Business Rules</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.business_rules %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.technical_requirements %}
+<h3 class="meeting-summary-subhead">Technical Requirements</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.technical_requirements %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.dependencies %}
+<h3 class="meeting-summary-subhead">Dependencies</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.dependencies %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.out_of_scope %}
+<h3 class="meeting-summary-subhead">Out of Scope</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.out_of_scope %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if s.open_items %}
+<h3 class="meeting-summary-subhead">Open Items</h3>
+<ul class="meeting-summary-list">
+  {% for item in s.open_items %}
+  <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+{% endif %}

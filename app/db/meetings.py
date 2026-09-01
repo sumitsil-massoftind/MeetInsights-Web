@@ -128,6 +128,41 @@ def _serialize_action_items(raw: Any) -> list[dict[str, str]]:
     return items
 
 
+def _serialize_scope(doc: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "project_context": doc.get("scope_project_context") or "",
+        "project_overview": doc.get("scope_project_overview") or "",
+        "objectives": doc.get("scope_objectives") or [],
+        "in_scope": doc.get("scope_in_scope") or [],
+        "functional_requirements": doc.get("scope_functional_requirements") or [],
+        "business_rules": doc.get("scope_business_rules") or [],
+        "technical_requirements": doc.get("scope_technical_requirements") or [],
+        "dependencies": doc.get("scope_dependencies") or [],
+        "out_of_scope": doc.get("scope_out_of_scope") or [],
+        "open_items": doc.get("scope_open_items") or [],
+        "scope_changes": doc.get("scope_changes") or [],
+        "provider": doc.get("scope_provider") or "",
+    }
+
+
+def _has_stored_scope(doc: dict[str, Any]) -> bool:
+    scope = _serialize_scope(doc)
+    if (scope.get("project_overview") or "").strip():
+        return True
+    list_fields = (
+        "objectives",
+        "in_scope",
+        "functional_requirements",
+        "business_rules",
+        "technical_requirements",
+        "dependencies",
+        "out_of_scope",
+        "open_items",
+        "scope_changes",
+    )
+    return any(scope.get(field) for field in list_fields)
+
+
 def _serialize_summary_topics(doc: dict[str, Any]) -> list[dict[str, Any]]:
     topics: list[dict[str, Any]] = []
     for item in doc.get("summary_topics") or []:
@@ -273,6 +308,9 @@ def serialize_meeting(
         "summary_contradictions": doc.get("summary_contradictions") or [],
         "summary_timestamps": doc.get("summary_timestamps") or [],
         "summary_outcome": doc.get("summary_outcome") or "",
+        "has_scope": _has_stored_scope(doc),
+        "scope_project_context": doc.get("scope_project_context") or "",
+        "scope": _serialize_scope(doc),
         "transcript_preview": preview or transcript_placeholder,
     }
 
@@ -459,6 +497,19 @@ async def clear_transcript_for_regeneration(meeting_id: str) -> None:
                 "summary_outcome": "",
                 "summary_provider": "",
                 "summarized_at": "",
+                "scope_project_context": "",
+                "scope_project_overview": "",
+                "scope_objectives": "",
+                "scope_in_scope": "",
+                "scope_functional_requirements": "",
+                "scope_business_rules": "",
+                "scope_technical_requirements": "",
+                "scope_dependencies": "",
+                "scope_out_of_scope": "",
+                "scope_open_items": "",
+                "scope_changes": "",
+                "scope_provider": "",
+                "scoped_at": "",
             },
         },
     )
@@ -744,6 +795,19 @@ SHARE_COPY_FIELDS = (
     "summary_outcome",
     "summary_provider",
     "summarized_at",
+    "scope_project_context",
+    "scope_project_overview",
+    "scope_objectives",
+    "scope_in_scope",
+    "scope_functional_requirements",
+    "scope_business_rules",
+    "scope_technical_requirements",
+    "scope_dependencies",
+    "scope_out_of_scope",
+    "scope_open_items",
+    "scope_changes",
+    "scope_provider",
+    "scoped_at",
     "processed_at",
 )
 

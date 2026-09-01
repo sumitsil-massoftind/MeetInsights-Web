@@ -276,6 +276,48 @@
     });
   }
 
+  function requestScope(meetingId, projectContext) {
+    if (!socket || !socket.connected) {
+      return Promise.reject(new Error("Scope service is not connected."));
+    }
+
+    return new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Project scope generation timed out. Please try again."));
+      }, GENERATE_TIMEOUT_MS);
+
+      function matches(payload) {
+        return !payload || !payload.meeting_id || payload.meeting_id === meetingId;
+      }
+
+      function cleanup() {
+        window.clearTimeout(timer);
+        socket.off("scope:ready", onReady);
+        socket.off("scope:error", onError);
+      }
+
+      function onReady(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        resolve(payload || {});
+      }
+
+      function onError(payload) {
+        if (!matches(payload)) return;
+        cleanup();
+        reject(new Error((payload && payload.msg) || "Unable to generate project scope."));
+      }
+
+      socket.on("scope:ready", onReady);
+      socket.on("scope:error", onError);
+      socket.emit("scope:generate", {
+        meeting_id: meetingId,
+        project_context: projectContext || "",
+      });
+    });
+  }
+
   function requestChat(meetingId, message, history, meetingIds) {
     if (chatPromise) return chatPromise;
     if (!socket || !socket.connected) {
@@ -377,6 +419,7 @@
     connect,
     requestSummary,
     requestTranslation,
+    requestScope,
     requestChat,
     patchSummaryCard,
   };
