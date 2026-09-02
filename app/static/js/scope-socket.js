@@ -75,10 +75,12 @@
   function showScopeResult(html) {
     const resultEl = document.getElementById("project-scope-result");
     const regenerateBtn = document.getElementById("regenerate-scope-btn");
+    const copyBtn = document.getElementById("copy-scope-btn");
     if (!resultEl) return;
     resultEl.innerHTML = html || '<p class="meeting-summary-text mb-0">No scope details were returned.</p>';
     resultEl.classList.remove("d-none");
     if (regenerateBtn) regenerateBtn.classList.remove("d-none");
+    if (copyBtn) copyBtn.classList.remove("d-none");
   }
 
   function persistScopeData(data) {

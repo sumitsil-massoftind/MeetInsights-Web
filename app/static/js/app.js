@@ -86,6 +86,79 @@ function enableCopySummaryButton() {
   });
 }
 
+function getMeetingScopePlainText(body) {
+  if (!body) return "";
+  const lines = [];
+
+  body.childNodes.forEach((node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node;
+
+    if (el.classList.contains("meeting-summary-text")) {
+      const text = el.textContent.trim();
+      if (text) lines.push(text, "");
+      return;
+    }
+
+    if (el.classList.contains("meeting-summary-subhead")) {
+      const text = el.textContent.trim();
+      if (text) lines.push(text);
+      return;
+    }
+
+    if (el.classList.contains("meeting-summary-list")) {
+      el.querySelectorAll("li").forEach((li) => {
+        const text = li.textContent.trim();
+        if (text) lines.push(`• ${text}`);
+      });
+      lines.push("");
+    }
+  });
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function enableCopyScopeButton() {
+  const btn = document.getElementById("copy-scope-btn");
+  if (btn) {
+    btn.classList.remove("d-none");
+    btn.hidden = false;
+    btn.disabled = false;
+  }
+}
+
+function initCopyScopeButtons() {
+  document.querySelectorAll(".copy-scope-btn").forEach((button) => {
+    if (button.dataset.miBound === "true") return;
+    button.dataset.miBound = "true";
+
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      const body = document.getElementById("project-scope-result");
+      const text = getMeetingScopePlainText(body);
+      if (!text) {
+        showToast("Nothing to copy yet.");
+        return;
+      }
+
+      const originalHtml = button.innerHTML;
+      button.disabled = true;
+      try {
+        await copyTextToClipboard(text);
+        button.innerHTML = '<i class="bi bi-check2 me-1"></i> Copied';
+        showToast("Scope copied to clipboard.");
+        window.setTimeout(() => {
+          button.innerHTML = originalHtml;
+          button.disabled = false;
+        }, 1800);
+      } catch {
+        showToast("Unable to copy the scope.");
+        button.disabled = false;
+      }
+    });
+  });
+}
+
 function initCopySummaryButtons() {
   document.querySelectorAll(".copy-summary-btn").forEach((button) => {
     if (button.dataset.miBound === "true") return;
@@ -876,6 +949,7 @@ if (!window.__miSelectListeners) {
 function initAppPage() {
   initCustomSelects();
   initCopySummaryButtons();
+  initCopyScopeButtons();
 
   document.querySelectorAll(".meeting-source-switch").forEach((switchEl) => {
     switchEl.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {

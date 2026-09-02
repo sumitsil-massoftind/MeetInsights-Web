@@ -396,6 +396,13 @@
             <div class="meeting-summary-actions">
               <button
                 type="button"
+                class="btn btn-sm btn-outline-secondary copy-scope-btn{% if not meeting.has_scope %} d-none{% endif %}"
+                id="copy-scope-btn"
+              >
+                <i class="bi bi-clipboard me-1"></i> Copy scope
+              </button>
+              <button
+                type="button"
                 class="btn btn-sm btn-outline-primary regenerate-scope-btn{% if not meeting.has_scope %} d-none{% endif %}"
                 id="regenerate-scope-btn"
               >
